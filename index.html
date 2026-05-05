@@ -59,18 +59,6 @@
       width: 100%; padding: 12px; font-size: 15px; color: #fff;
       background: var(--secondary); border: none; border-radius: 8px; cursor: pointer;
     }
-    .scan-row { display: flex; gap: 8px; margin-top: 10px; }
-    .scan-row button { flex: 1; }
-    .scan-btn {
-      padding: 14px; font-size: 15px; font-weight: 600; color: #fff;
-      background: var(--ok); border: none; border-radius: 8px; cursor: pointer;
-    }
-    .scan-btn:active { opacity: 0.85; }
-    .photo-btn {
-      padding: 14px; font-size: 15px; font-weight: 600; color: #fff;
-      background: #f59e0b; border: none; border-radius: 8px; cursor: pointer;
-    }
-    .photo-btn:active { opacity: 0.85; }
     .link-btn { background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; padding: 4px 8px; }
     .suggest-list {
       list-style: none; margin: 8px 0 0; padding: 0;
@@ -108,39 +96,79 @@
     .toast.expired { background: #f3f4f6; color: var(--secondary); }
     .toast.ok { background: #d1fae5; color: var(--ok); }
     .toast.error { background: #fef3c7; color: var(--warn); }
-    .scanner-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.92);
-      z-index: 200; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; padding: 16px;
+    .mode-tabs {
+      display: flex; background: #fff;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 9;
     }
-    .scanner-frame {
-      position: relative;
-      width: 75vw; max-width: 320px;
-      aspect-ratio: 1;
+    .mode-tabs button {
+      flex: 1; padding: 12px; background: none;
+      border: none; border-bottom: 3px solid transparent;
+      font-size: 15px; cursor: pointer; color: var(--muted);
     }
-    .scanner-overlay video {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      border-radius: 12px;
-      background: #000;
+    .mode-tabs button.active {
+      color: var(--primary); border-bottom-color: var(--primary); font-weight: 600;
     }
-    .scanner-frame::after {
-      content: '';
-      position: absolute; inset: 12%;
-      border: 2px solid rgba(34, 197, 94, 0.85);
-      border-radius: 8px;
-      pointer-events: none;
+    .import-btn {
+      width: 100%; padding: 14px;
+      background: #6366f1; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
     }
-    .scanner-status { color: #fff; margin-top: 14px; font-size: 14px; text-align: center; min-height: 18px; }
-    .scanner-counter { color: #9ca3af; margin-top: 6px; font-size: 12px; }
-    .scanner-cancel {
-      margin-top: 22px; padding: 14px 56px;
-      background: #dc2626; color: #fff;
-      border: none; border-radius: 999px;
-      font-size: 16px; font-weight: 700; cursor: pointer;
-      box-shadow: 0 4px 14px rgba(220,38,38,0.4);
+    .import-btn:active { background: #4f46e5; }
+    .shelf-list {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 8px; margin-top: 4px;
     }
-    .scanner-cancel:active { background: #b91c1c; }
+    .shelf-item {
+      background: #f3f4f6; border: 1px solid var(--border);
+      padding: 14px 8px; border-radius: 8px; cursor: pointer;
+      text-align: center;
+    }
+    .shelf-item:active { background: #e5e7eb; }
+    .shelf-name { font-weight: 600; font-size: 14px; }
+    .shelf-count { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .stock-item {
+      background: #fff; padding: 14px;
+      border-radius: 8px; margin-bottom: 10px;
+      box-shadow: var(--shadow);
+    }
+    .stock-item-header {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 8px; gap: 8px;
+    }
+    .stock-item-name { font-weight: 600; font-size: 15px; }
+    .stock-item-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .stock-item-state {
+      font-size: 11px; padding: 3px 8px;
+      border-radius: 999px; background: #f3f4f6; color: var(--muted);
+      flex-shrink: 0; font-weight: 600;
+    }
+    .stock-item-state.match { background: #d1fae5; color: var(--ok); }
+    .stock-item-state.diff { background: #fee2e2; color: var(--danger); }
+    .stock-item-state.impending { background: #fef3c7; color: var(--warn); }
+    .stock-item-fields {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .stock-item-fields input {
+      padding: 10px; font-size: 14px;
+    }
+    .stock-item-record {
+      width: 100%; margin-top: 8px; padding: 10px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 6px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .stock-item-record:disabled { background: #9ca3af; }
+    .stock-back-btn {
+      background: none; border: 1px solid var(--border);
+      padding: 8px 16px; border-radius: 6px;
+      margin-bottom: 12px; cursor: pointer; font-size: 13px;
+    }
+    .shelf-search {
+      width: 100%; padding: 8px 12px;
+      margin-bottom: 8px; font-size: 14px;
+    }
     .config-banner {
       padding: 10px 14px; background: #fef3c7; color: #92400e;
       font-size: 13px; text-align: center;
@@ -160,17 +188,17 @@
     </div>
   </header>
 
-  <main>
+  <nav class="mode-tabs">
+    <button type="button" id="modeSearchBtn">個別記録</button>
+    <button type="button" id="modeStockBtn" class="active">棚卸しモード</button>
+  </nav>
+
+  <main id="searchMode" class="hidden">
     <section class="card">
       <label for="searchInput" class="section-label">医薬品を検索</label>
       <input type="search" id="searchInput" placeholder="薬品名・カナ・YJ・JANコード" autocomplete="off" inputmode="search">
       <ul id="suggestList" class="suggest-list" hidden></ul>
       <div id="searchHint" class="hint">2文字以上で検索します</div>
-      <div class="scan-row">
-        <button type="button" id="scanBtn" class="scan-btn">📷 連続スキャン</button>
-        <button type="button" id="photoBtn" class="photo-btn">📸 写真解析</button>
-      </div>
-      <div class="hint">PTPの細かいバーコードは「写真解析」が確実</div>
     </section>
 
     <section id="selectedCard" class="card hidden">
@@ -212,21 +240,32 @@
     </section>
   </main>
 
-  <div id="scannerOverlay" class="scanner-overlay hidden">
-    <div class="scanner-frame">
-      <video id="scannerVideo" playsinline muted autoplay></video>
-    </div>
-    <div id="scannerStatus" class="scanner-status">バーコードを緑の枠内に</div>
-    <div id="scannerCounter" class="scanner-counter"></div>
-    <button type="button" id="scannerCancel" class="scanner-cancel">キャンセル</button>
-  </div>
+  <main id="stockMode">
+    <section class="card">
+      <button type="button" id="importStockBtn" class="import-btn">📥 板の在庫データを取込</button>
+      <div class="hint">板から出した F メニューCSV をそのまま取込（Shift_JIS対応）</div>
+    </section>
+
+    <section class="card" id="shelfSelectSection">
+      <div class="section-head">
+        <span class="section-label">棚版を選択</span>
+        <button type="button" id="reloadShelvesBtn" class="link-btn">更新</button>
+      </div>
+      <input type="search" id="shelfSearch" class="shelf-search" placeholder="棚版を絞り込み…" autocomplete="off">
+      <div id="shelfList" class="shelf-list"></div>
+    </section>
+
+    <section id="shelfDetailSection" class="hidden">
+      <button type="button" id="backToShelfList" class="stock-back-btn">← 棚版一覧へ</button>
+      <div class="card">
+        <div class="section-label" id="currentShelfLabel"></div>
+        <div id="stockItems"></div>
+      </div>
+    </section>
+  </main>
+
 
   <div id="toast" class="toast" hidden></div>
-
-  <script type="module">
-    import { readBarcodes } from 'https://esm.sh/zxing-wasm@2/reader';
-    window.zxingRead = readBarcodes;
-  </script>
 
   <script>
   (function () {
@@ -243,9 +282,10 @@
     let searchTimer = null;
     let MEDICINES = [];
     let medicinesLoaded = false;
-    let scanIntervalId = null;
-    let videoStream = null;
-    let scanCanvas = null;
+    let shelves = [];
+    let shelvesLoaded = false;
+    let currentShelfItems = [];
+    let currentShelfName = '';
 
     if (!API_URL || API_URL.indexOf('PASTE_') === 0) {
       $('configBanner').classList.remove('hidden');
@@ -270,9 +310,230 @@
       bindSearch();
       bindForm();
       bindRecent();
-      bindScanner();
+      bindModeTabs();
+      bindStockMode();
       loadRecent();
       loadAllMedicines();
+      loadShelves();
+    }
+
+    function bindModeTabs() {
+      $('modeSearchBtn').addEventListener('click', () => showMode('search'));
+      $('modeStockBtn').addEventListener('click', () => showMode('stock'));
+    }
+
+    function showMode(mode) {
+      const search = mode === 'search';
+      $('searchMode').classList.toggle('hidden', !search);
+      $('stockMode').classList.toggle('hidden', search);
+      $('modeSearchBtn').classList.toggle('active', search);
+      $('modeStockBtn').classList.toggle('active', !search);
+      if (!search && !shelvesLoaded) loadShelves();
+    }
+
+    function bindStockMode() {
+      $('reloadShelvesBtn').addEventListener('click', () => { shelvesLoaded = false; loadShelves(); });
+      $('shelfSearch').addEventListener('input', renderShelfList);
+      $('backToShelfList').addEventListener('click', () => {
+        $('shelfSelectSection').classList.remove('hidden');
+        $('shelfDetailSection').classList.add('hidden');
+      });
+      $('importStockBtn').addEventListener('click', startImport);
+    }
+
+    function loadShelves() {
+      $('shelfList').innerHTML = '<div class="hint">読み込み中…</div>';
+      callApi('getShelfList')
+        .then((rows) => {
+          shelves = rows || [];
+          shelvesLoaded = true;
+          renderShelfList();
+        })
+        .catch((err) => {
+          $('shelfList').innerHTML = '<div class="hint">エラー: ' + err.message + '</div>';
+        });
+    }
+
+    function renderShelfList() {
+      const filter = $('shelfSearch').value.trim().toLowerCase();
+      const list = $('shelfList');
+      list.innerHTML = '';
+      const filtered = shelves.filter(s => !filter || s.shelf.toLowerCase().includes(filter));
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="hint">該当する棚版なし</div>';
+        return;
+      }
+      filtered.forEach((s) => {
+        const item = document.createElement('div');
+        item.className = 'shelf-item';
+        const name = document.createElement('div');
+        name.className = 'shelf-name';
+        name.textContent = s.shelf;
+        const count = document.createElement('div');
+        count.className = 'shelf-count';
+        count.textContent = s.count + '品目';
+        item.appendChild(name);
+        item.appendChild(count);
+        item.addEventListener('click', () => loadStockByShelf(s.shelf));
+        list.appendChild(item);
+      });
+    }
+
+    function loadStockByShelf(shelf) {
+      currentShelfName = shelf;
+      $('shelfSelectSection').classList.add('hidden');
+      $('shelfDetailSection').classList.remove('hidden');
+      $('currentShelfLabel').textContent = shelf + '（読込中…）';
+      $('stockItems').innerHTML = '';
+      callApi('getStockByShelf', { shelf: shelf })
+        .then((rows) => {
+          currentShelfItems = rows || [];
+          $('currentShelfLabel').textContent = shelf + '（' + currentShelfItems.length + '品目・50音順）';
+          renderStockItems();
+        })
+        .catch((err) => {
+          $('currentShelfLabel').textContent = 'エラー: ' + err.message;
+        });
+    }
+
+    function renderStockItems() {
+      const container = $('stockItems');
+      container.innerHTML = '';
+      currentShelfItems.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'stock-item';
+
+        const header = document.createElement('div');
+        header.className = 'stock-item-header';
+
+        const info = document.createElement('div');
+        const name = document.createElement('div');
+        name.className = 'stock-item-name';
+        name.textContent = item.name;
+        const meta = document.createElement('div');
+        meta.className = 'stock-item-meta';
+        const lastDate = item.lastInventoryDate ? ' / 前回: ' + String(item.lastInventoryDate).substring(0, 10) : '';
+        meta.textContent = '理論: ' + item.theoreticalStock + (item.unit || '') + ' / ' + (item.maker || '') + lastDate;
+        info.appendChild(name);
+        info.appendChild(meta);
+
+        const state = document.createElement('span');
+        state.className = 'stock-item-state';
+        state.id = 'state_' + idx;
+        state.textContent = '未入力';
+
+        header.appendChild(info);
+        header.appendChild(state);
+
+        const fields = document.createElement('div');
+        fields.className = 'stock-item-fields';
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number';
+        qtyInput.id = 'qty_' + idx;
+        qtyInput.placeholder = '実数量';
+        qtyInput.min = '0';
+        qtyInput.step = '0.01';
+        qtyInput.inputMode = 'decimal';
+        qtyInput.value = item.theoreticalStock;
+        const expInput = document.createElement('input');
+        expInput.type = 'month';
+        expInput.id = 'exp_' + idx;
+        expInput.placeholder = '期限';
+        fields.appendChild(qtyInput);
+        fields.appendChild(expInput);
+
+        const recBtn = document.createElement('button');
+        recBtn.className = 'stock-item-record';
+        recBtn.id = 'rec_' + idx;
+        recBtn.textContent = '記録';
+        recBtn.addEventListener('click', () => recordStockItem(idx));
+
+        div.appendChild(header);
+        div.appendChild(fields);
+        div.appendChild(recBtn);
+        container.appendChild(div);
+      });
+    }
+
+    function recordStockItem(idx) {
+      const item = currentShelfItems[idx];
+      const qty = Number($('qty_' + idx).value || 0);
+      const expiry = $('exp_' + idx).value;
+      const inventoryDate = $('inventoryDate').value;
+      const recBtn = $('rec_' + idx);
+      const stateEl = $('state_' + idx);
+      recBtn.disabled = true;
+      recBtn.textContent = '記録中…';
+      callApi('updateStockItem', {
+        rowNumber: item.rowNumber,
+        actualStock: qty,
+        expiry: expiry || null,
+        inventoryDate: inventoryDate,
+      })
+        .then((res) => {
+          item.theoreticalStock = qty;
+          let label = '';
+          let cls = 'stock-item-state ';
+          if (res.diffStatus === 'diff') {
+            const delta = qty - res.oldStock;
+            label = (delta > 0 ? '+' : '') + delta + ' 差異';
+            cls += 'diff';
+          } else {
+            label = '✓ 一致';
+            cls += 'match';
+          }
+          if (res.expiryStatus === 'impending') { label += ' / 切迫'; cls = 'stock-item-state impending'; }
+          else if (res.expiryStatus === 'expired') { label += ' / 期限切'; cls = 'stock-item-state diff'; }
+          stateEl.className = cls;
+          stateEl.textContent = label;
+          recBtn.textContent = '更新';
+          recBtn.disabled = false;
+          toast(res.message, res.diffStatus === 'diff' ? 'error' : 'ok');
+        })
+        .catch((err) => {
+          toast('エラー: ' + err.message, 'error');
+          recBtn.disabled = false;
+          recBtn.textContent = '記録';
+        });
+    }
+
+    function startImport() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.csv,text/csv';
+      input.addEventListener('change', () => {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        toast('在庫データを取込中…（数十秒かかる場合あり）', 'ok');
+        $('importStockBtn').disabled = true;
+        file.arrayBuffer().then((buffer) => {
+          const base64 = arrayBufferToBase64(buffer);
+          return callApi('importBoardStock', { base64: base64 });
+        })
+          .then((res) => {
+            const janCount = (res.janFromMaster || 0) + (res.janKept || 0);
+            toast('取込完了: ' + res.updated + '件更新, ' + res.added + '件追加 / JAN結合: ' + janCount + '件', 'ok');
+            shelvesLoaded = false;
+            loadShelves();
+          })
+          .catch((err) => {
+            toast('取込エラー: ' + err.message, 'error');
+          })
+          .finally(() => {
+            $('importStockBtn').disabled = false;
+          });
+      });
+      input.click();
+    }
+
+    function arrayBufferToBase64(buffer) {
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(binary);
     }
 
     function loadAllMedicines() {
@@ -447,146 +708,6 @@
       $('reloadRecent').addEventListener('click', loadRecent);
     }
 
-    function bindScanner() {
-      $('scanBtn').addEventListener('click', startScan);
-      $('scannerCancel').addEventListener('click', stopScan);
-      $('photoBtn').addEventListener('click', startPhotoCapture);
-    }
-
-    function startPhotoCapture() {
-      if (!window.zxingRead) {
-        toast('スキャナー読み込み中', 'error');
-        return;
-      }
-      if (!medicinesLoaded) {
-        toast('医薬品マスタ読み込み中', 'error');
-        return;
-      }
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.capture = 'environment';
-      input.addEventListener('change', async () => {
-        if (!input.files || input.files.length === 0) return;
-        toast('解析中…', 'ok');
-        try {
-          const blob = input.files[0];
-          const results = await window.zxingRead(blob, {
-            formats: [
-              'DataBar', 'DataBarLtd', 'DataBarExp',
-              'DataBarOmni', 'DataBarStk', 'DataBarStkOmni', 'DataBarExpStk',
-              'EAN13', 'EAN8', 'UPCA', 'UPCE',
-              'Code128', 'Code39', 'ITF', 'ITF14',
-              'QRCode', 'DataMatrix',
-            ],
-            tryHarder: true,
-            tryRotate: true,
-            tryInvert: true,
-            tryDownscale: true,
-          });
-          if (results && results.length > 0) {
-            handleScanResult(results[0].text);
-          } else {
-            toast('バーコードが見つかりませんでした。撮り直してください', 'error');
-          }
-        } catch (err) {
-          toast('解析エラー: ' + err.message, 'error');
-        }
-      });
-      input.click();
-    }
-
-    async function startScan() {
-      if (!window.zxingRead) {
-        toast('スキャナー読み込み中。数秒待ってもう一度', 'error');
-        return;
-      }
-      if (!medicinesLoaded) {
-        toast('医薬品マスタ読み込み中', 'error');
-        return;
-      }
-      $('scannerOverlay').classList.remove('hidden');
-      $('scannerStatus').textContent = 'カメラを起動中…';
-      try {
-        videoStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            focusMode: 'continuous',
-            advanced: [{ focusMode: 'continuous' }, { focusMode: 'auto' }],
-          }
-        });
-        const video = $('scannerVideo');
-        video.srcObject = videoStream;
-        await video.play();
-        scanCanvas = document.createElement('canvas');
-        const ctx = scanCanvas.getContext('2d', { willReadFrequently: true });
-        $('scannerStatus').textContent = 'バーコードを緑の枠内に';
-        let busy = false;
-        let attempts = 0;
-        scanIntervalId = setInterval(async () => {
-          if (busy) return;
-          if (!video.videoWidth) return;
-          busy = true;
-          try {
-            scanCanvas.width = video.videoWidth;
-            scanCanvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
-            const results = await window.zxingRead(scanCanvas, {
-              formats: [
-                'DataBar', 'DataBarLtd', 'DataBarExp',
-                'DataBarOmni', 'DataBarStk', 'DataBarStkOmni', 'DataBarExpStk',
-                'EAN13', 'EAN8', 'UPCA', 'UPCE',
-                'Code128', 'Code39', 'ITF', 'ITF14',
-                'QRCode', 'DataMatrix',
-              ],
-              tryHarder: true,
-              tryRotate: true,
-              tryInvert: true,
-              tryDownscale: true,
-            });
-            attempts++;
-            $('scannerCounter').textContent = '読取中… ' + attempts + '回';
-            if (results && results.length > 0) {
-              handleScanResult(results[0].text);
-            }
-          } catch (e) {
-            // 無視（次のフレームへ）
-          } finally {
-            busy = false;
-          }
-        }, 200);
-      } catch (err) {
-        $('scannerStatus').textContent = 'カメラ起動失敗: ' + err.message;
-      }
-    }
-
-    function stopScan() {
-      if (scanIntervalId) {
-        clearInterval(scanIntervalId);
-        scanIntervalId = null;
-      }
-      if (videoStream) {
-        videoStream.getTracks().forEach((t) => t.stop());
-        videoStream = null;
-      }
-      const video = $('scannerVideo');
-      if (video) video.srcObject = null;
-      scanCanvas = null;
-      $('scannerOverlay').classList.add('hidden');
-    }
-
-    function handleScanResult(code) {
-      const matched = findByGtin(code);
-      if (matched) {
-        stopScan();
-        selectMedicine(matched);
-        toast('「' + matched.name + '」を選択', 'ok');
-      } else {
-        $('scannerStatus').textContent = '未登録のコード: ' + code + ' (続けて読取)';
-      }
-    }
 
     function loadRecent() {
       callApi('getRecentRecords', { limit: 10 })
