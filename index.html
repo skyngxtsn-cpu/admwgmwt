@@ -629,7 +629,9 @@
         markShelfDone(currentShelfName);
         showCompleteSummary(container);
         // バックグラウンドで期限一覧ピボットを再構築
-        callApi('rebuildPivot').catch(function () {});
+        callApi('rebuildPivot')
+          .then(function () { toast('期限一覧を更新しました', 'ok'); })
+          .catch(function (err) { toast('期限一覧の更新に失敗: ' + err.message, 'error'); });
         return;
       }
 
@@ -851,7 +853,7 @@
       callApi('updateStockItem', {
         rowNumber: item.rowNumber,
         actualStock: qty,
-        expiries: expiries.length > 0 ? expiries : null,
+        expiries: expiries.length > 0 ? expiries : [],
         inventoryDate: inventoryDate,
       })
         .then(function (res) {
