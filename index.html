@@ -128,43 +128,69 @@
     .shelf-item:active { background: #e5e7eb; }
     .shelf-name { font-weight: 600; font-size: 14px; }
     .shelf-count { font-size: 11px; color: var(--muted); margin-top: 4px; }
-    .stock-item {
-      background: #fff; padding: 14px;
-      border-radius: 8px; margin-bottom: 10px;
-      box-shadow: var(--shadow);
+    .stock-card {
+      background: var(--card-bg); border-radius: 12px;
+      padding: 20px 16px; box-shadow: var(--shadow);
+      min-height: 50vh;
+      display: flex; flex-direction: column; gap: 16px;
     }
-    .stock-item-header {
-      display: flex; justify-content: space-between;
-      align-items: flex-start; margin-bottom: 8px; gap: 8px;
+    .stock-card-name { font-weight: 700; font-size: 20px; line-height: 1.3; }
+    .stock-card-meta { font-size: 14px; color: var(--muted); }
+    .stock-qty-section { padding: 12px 0; border-top: 1px solid var(--border); }
+    .stock-qty-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .stock-qty-row { display: flex; gap: 10px; align-items: center; }
+    .stock-qty-ok {
+      padding: 12px 20px; font-size: 16px; font-weight: 700;
+      background: #d1fae5; color: var(--ok); border: 2px solid var(--ok);
+      border-radius: 8px; cursor: pointer; white-space: nowrap;
     }
-    .stock-item-name { font-weight: 600; font-size: 15px; }
-    .stock-item-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .stock-item-state {
-      font-size: 11px; padding: 3px 8px;
-      border-radius: 999px; background: #f3f4f6; color: var(--muted);
-      flex-shrink: 0; font-weight: 600;
+    .stock-qty-ok:active { background: #a7f3d0; }
+    .stock-qty-ok.checked {
+      background: var(--ok); color: #fff;
     }
-    .stock-item-state.match { background: #d1fae5; color: var(--ok); }
-    .stock-item-state.diff { background: #fee2e2; color: var(--danger); }
-    .stock-item-state.impending { background: #fef3c7; color: var(--warn); }
-    .stock-item-fields {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    .stock-qty-input {
+      flex: 1; padding: 12px; font-size: 18px; font-weight: 600;
+      border: 1px solid var(--border); border-radius: 8px;
+      text-align: center;
     }
-    .stock-item-fields input {
-      padding: 10px; font-size: 14px;
+    .stock-expiry-section { padding: 12px 0; border-top: 1px solid var(--border); }
+    .stock-expiry-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .stock-expiry-row { margin-bottom: 8px; }
+    .stock-expiry-row input {
+      width: 100%; padding: 12px; font-size: 16px;
+      border: 1px solid var(--border); border-radius: 8px;
     }
-    .stock-item-record {
-      width: 100%; margin-top: 8px; padding: 10px;
-      background: var(--primary); color: #fff;
-      border: none; border-radius: 6px;
-      font-size: 14px; font-weight: 600; cursor: pointer;
+    .stock-next-btn {
+      width: 100%; padding: 16px; margin-top: auto;
+      font-size: 18px; font-weight: 700; color: #fff;
+      background: var(--primary); border: none; border-radius: 10px;
+      cursor: pointer; box-shadow: 0 2px 8px rgba(29,78,216,0.3);
     }
-    .stock-item-record:disabled { background: #9ca3af; }
+    .stock-next-btn:active { background: var(--primary-dark); }
+    .stock-next-btn:disabled { background: #9ca3af; box-shadow: none; }
+    .stock-skip-btn {
+      width: 100%; padding: 12px; margin-top: 8px;
+      font-size: 14px; color: var(--muted);
+      background: none; border: 1px solid var(--border);
+      border-radius: 8px; cursor: pointer;
+    }
+    .stock-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
     .stock-back-btn {
       background: none; border: 1px solid var(--border);
       padding: 8px 16px; border-radius: 6px;
-      margin-bottom: 12px; cursor: pointer; font-size: 13px;
+      cursor: pointer; font-size: 13px;
     }
+    .stock-progress {
+      font-size: 13px; color: var(--muted); font-weight: 600;
+    }
+    .stock-complete {
+      text-align: center; padding: 40px 16px;
+    }
+    .stock-complete-icon { font-size: 48px; margin-bottom: 12px; }
+    .stock-complete-msg { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
     .shelf-search {
       width: 100%; padding: 8px 12px;
       margin-bottom: 8px; font-size: 14px;
@@ -256,11 +282,11 @@
     </section>
 
     <section id="shelfDetailSection" class="hidden">
-      <button type="button" id="backToShelfList" class="stock-back-btn">← 棚版一覧へ</button>
-      <div class="card">
-        <div class="section-label" id="currentShelfLabel"></div>
-        <div id="stockItems"></div>
+      <div class="stock-header">
+        <button type="button" id="backToShelfList" class="stock-back-btn">← 棚版一覧</button>
+        <span id="stockProgress" class="stock-progress"></span>
       </div>
+      <div id="stockCardContainer"></div>
     </section>
   </main>
 
@@ -286,6 +312,8 @@
     let shelvesLoaded = false;
     let currentShelfItems = [];
     let currentShelfName = '';
+    let currentItemIndex = 0;
+    let qtyConfirmed = false;
 
     if (!API_URL || API_URL.indexOf('PASTE_') === 0) {
       $('configBanner').classList.remove('hidden');
@@ -354,11 +382,21 @@
         });
     }
 
+    function normalizeShelfKey(s) {
+      // "F-002-" → "f2", "K-001-記帳" → "k1記帳", "冷所-001-" → "冷所1"
+      return s.replace(/-/g, '').replace(/0+(\d)/g, '$1').toLowerCase();
+    }
+
     function renderShelfList() {
       const filter = $('shelfSearch').value.trim().toLowerCase();
+      const filterKey = normalizeShelfKey(filter);
       const list = $('shelfList');
       list.innerHTML = '';
-      const filtered = shelves.filter(s => !filter || s.shelf.toLowerCase().includes(filter));
+      const filtered = shelves.filter(function (s) {
+        if (!filter) return true;
+        // 元の名前でも、正規化した名前でもヒットすればOK
+        return s.shelf.toLowerCase().includes(filter) || normalizeShelfKey(s.shelf).includes(filterKey);
+      });
       if (filtered.length === 0) {
         list.innerHTML = '<div class="hint">該当する棚版なし</div>';
         return;
@@ -381,119 +419,204 @@
 
     function loadStockByShelf(shelf) {
       currentShelfName = shelf;
+      currentItemIndex = 0;
       $('shelfSelectSection').classList.add('hidden');
       $('shelfDetailSection').classList.remove('hidden');
-      $('currentShelfLabel').textContent = shelf + '（読込中…）';
-      $('stockItems').innerHTML = '';
+      $('stockProgress').textContent = '読込中…';
+      $('stockCardContainer').innerHTML = '';
       callApi('getStockByShelf', { shelf: shelf })
         .then((rows) => {
           currentShelfItems = rows || [];
-          $('currentShelfLabel').textContent = shelf + '（' + currentShelfItems.length + '品目・50音順）';
-          renderStockItems();
+          renderCurrentItem();
         })
         .catch((err) => {
-          $('currentShelfLabel').textContent = 'エラー: ' + err.message;
+          $('stockCardContainer').innerHTML = '<div class="hint">エラー: ' + err.message + '</div>';
         });
     }
 
-    function renderStockItems() {
-      const container = $('stockItems');
+    function renderCurrentItem() {
+      const container = $('stockCardContainer');
       container.innerHTML = '';
-      currentShelfItems.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.className = 'stock-item';
+      qtyConfirmed = false;
 
-        const header = document.createElement('div');
-        header.className = 'stock-item-header';
+      // 全品目完了
+      if (currentItemIndex >= currentShelfItems.length) {
+        $('stockProgress').textContent = '';
+        container.innerHTML =
+          '<div class="stock-complete">' +
+          '<div class="stock-complete-icon">✅</div>' +
+          '<div class="stock-complete-msg">' + currentShelfName + ' 完了</div>' +
+          '<button type="button" class="primary-btn" onclick="document.getElementById(\'backToShelfList\').click()">棚版一覧に戻る</button>' +
+          '</div>';
+        return;
+      }
 
-        const info = document.createElement('div');
-        const name = document.createElement('div');
-        name.className = 'stock-item-name';
-        name.textContent = item.name;
-        const meta = document.createElement('div');
-        meta.className = 'stock-item-meta';
-        const lastDate = item.lastInventoryDate ? ' / 前回: ' + String(item.lastInventoryDate).substring(0, 10) : '';
-        meta.textContent = '理論: ' + item.theoreticalStock + (item.unit || '') + ' / ' + (item.maker || '') + lastDate;
-        info.appendChild(name);
-        info.appendChild(meta);
+      const item = currentShelfItems[currentItemIndex];
+      const total = currentShelfItems.length;
+      $('stockProgress').textContent = (currentItemIndex + 1) + ' / ' + total + '品目';
 
-        const state = document.createElement('span');
-        state.className = 'stock-item-state';
-        state.id = 'state_' + idx;
-        state.textContent = '未入力';
+      const card = document.createElement('div');
+      card.className = 'stock-card';
 
-        header.appendChild(info);
-        header.appendChild(state);
+      // 薬品名
+      const nameEl = document.createElement('div');
+      nameEl.className = 'stock-card-name';
+      nameEl.textContent = item.name;
+      card.appendChild(nameEl);
 
-        const fields = document.createElement('div');
-        fields.className = 'stock-item-fields';
-        const qtyInput = document.createElement('input');
-        qtyInput.type = 'number';
-        qtyInput.id = 'qty_' + idx;
-        qtyInput.placeholder = '実数量';
-        qtyInput.min = '0';
-        qtyInput.step = '0.01';
-        qtyInput.inputMode = 'decimal';
-        qtyInput.value = item.theoreticalStock;
-        const expInput = document.createElement('input');
-        expInput.type = 'month';
-        expInput.id = 'exp_' + idx;
-        expInput.placeholder = '期限';
-        fields.appendChild(qtyInput);
-        fields.appendChild(expInput);
+      // メタ情報
+      const metaEl = document.createElement('div');
+      metaEl.className = 'stock-card-meta';
+      const parts = [item.unit, item.maker].filter(Boolean);
+      const lastDate = item.lastInventoryDate ? '前回: ' + String(item.lastInventoryDate).substring(0, 10) : '';
+      if (lastDate) parts.push(lastDate);
+      metaEl.textContent = parts.join(' / ');
+      card.appendChild(metaEl);
 
-        const recBtn = document.createElement('button');
-        recBtn.className = 'stock-item-record';
-        recBtn.id = 'rec_' + idx;
-        recBtn.textContent = '記録';
-        recBtn.addEventListener('click', () => recordStockItem(idx));
+      // 数量セクション
+      const qtySection = document.createElement('div');
+      qtySection.className = 'stock-qty-section';
+      const qtyLabel = document.createElement('div');
+      qtyLabel.className = 'stock-qty-label';
+      qtyLabel.textContent = '理論在庫: ' + item.theoreticalStock + (item.unit || '');
+      qtySection.appendChild(qtyLabel);
 
-        div.appendChild(header);
-        div.appendChild(fields);
-        div.appendChild(recBtn);
-        container.appendChild(div);
+      const qtyRow = document.createElement('div');
+      qtyRow.className = 'stock-qty-row';
+      const okBtn = document.createElement('button');
+      okBtn.type = 'button';
+      okBtn.className = 'stock-qty-ok';
+      okBtn.id = 'qtyOkBtn';
+      okBtn.textContent = '⚪︎ 一致';
+      okBtn.addEventListener('click', function () {
+        qtyConfirmed = true;
+        okBtn.classList.add('checked');
+        okBtn.textContent = '✓ 一致';
+        $('qtyInput').value = item.theoreticalStock;
       });
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'number';
+      qtyInput.className = 'stock-qty-input';
+      qtyInput.id = 'qtyInput';
+      qtyInput.placeholder = '実数量';
+      qtyInput.min = '0';
+      qtyInput.step = '0.01';
+      qtyInput.inputMode = 'decimal';
+      qtyInput.value = '';
+      qtyInput.addEventListener('input', function () {
+        // 数量手入力時はOKボタンを解除
+        qtyConfirmed = false;
+        okBtn.classList.remove('checked');
+        okBtn.textContent = '⚪︎ 一致';
+      });
+      qtyRow.appendChild(okBtn);
+      qtyRow.appendChild(qtyInput);
+      qtySection.appendChild(qtyRow);
+      card.appendChild(qtySection);
+
+      // 期限セクション
+      const expSection = document.createElement('div');
+      expSection.className = 'stock-expiry-section';
+      const expLabel = document.createElement('div');
+      expLabel.className = 'stock-expiry-label';
+      expLabel.textContent = '期限（切迫品がある場合）';
+      expSection.appendChild(expLabel);
+      const expContainer = document.createElement('div');
+      expContainer.id = 'expiryContainer';
+      expSection.appendChild(expContainer);
+      card.appendChild(expSection);
+      addExpiryField(expContainer);
+
+      // 記録して次へボタン
+      const nextBtn = document.createElement('button');
+      nextBtn.type = 'button';
+      nextBtn.className = 'stock-next-btn';
+      nextBtn.id = 'stockNextBtn';
+      nextBtn.textContent = '📝 記録して次へ';
+      nextBtn.addEventListener('click', recordAndNext);
+      card.appendChild(nextBtn);
+
+      // スキップボタン
+      const skipBtn = document.createElement('button');
+      skipBtn.type = 'button';
+      skipBtn.className = 'stock-skip-btn';
+      skipBtn.textContent = 'スキップ';
+      skipBtn.addEventListener('click', function () {
+        currentItemIndex++;
+        renderCurrentItem();
+      });
+      card.appendChild(skipBtn);
+
+      container.appendChild(card);
     }
 
-    function recordStockItem(idx) {
-      const item = currentShelfItems[idx];
-      const qty = Number($('qty_' + idx).value || 0);
-      const expiry = $('exp_' + idx).value;
+    function addExpiryField(container) {
+      if (!container) container = $('expiryContainer');
+      const row = document.createElement('div');
+      row.className = 'stock-expiry-row';
+      const input = document.createElement('input');
+      input.type = 'month';
+      input.addEventListener('change', function () {
+        // 値が入力されたら、次の空欄がなければ追加
+        const rows = container.querySelectorAll('.stock-expiry-row input');
+        const lastInput = rows[rows.length - 1];
+        if (lastInput && lastInput.value) {
+          addExpiryField(container);
+        }
+      });
+      row.appendChild(input);
+      container.appendChild(row);
+    }
+
+    function getExpiries() {
+      const container = $('expiryContainer');
+      if (!container) return [];
+      const inputs = container.querySelectorAll('input');
+      const values = [];
+      inputs.forEach(function (inp) {
+        if (inp.value && /^\d{4}-\d{2}$/.test(inp.value)) {
+          values.push(inp.value);
+        }
+      });
+      return values;
+    }
+
+    function recordAndNext() {
+      const item = currentShelfItems[currentItemIndex];
+      const qtyInput = $('qtyInput');
+      let qty;
+      if (qtyConfirmed) {
+        qty = item.theoreticalStock;
+      } else if (qtyInput.value !== '') {
+        qty = Number(qtyInput.value);
+      } else {
+        toast('数量を入力するか「⚪︎ 一致」を押してください', 'error');
+        return;
+      }
+
+      const expiries = getExpiries();
       const inventoryDate = $('inventoryDate').value;
-      const recBtn = $('rec_' + idx);
-      const stateEl = $('state_' + idx);
-      recBtn.disabled = true;
-      recBtn.textContent = '記録中…';
+      const nextBtn = $('stockNextBtn');
+      nextBtn.disabled = true;
+      nextBtn.textContent = '記録中…';
+
       callApi('updateStockItem', {
         rowNumber: item.rowNumber,
         actualStock: qty,
-        expiry: expiry || null,
+        expiries: expiries.length > 0 ? expiries : null,
         inventoryDate: inventoryDate,
       })
-        .then((res) => {
+        .then(function (res) {
           item.theoreticalStock = qty;
-          let label = '';
-          let cls = 'stock-item-state ';
-          if (res.diffStatus === 'diff') {
-            const delta = qty - res.oldStock;
-            label = (delta > 0 ? '+' : '') + delta + ' 差異';
-            cls += 'diff';
-          } else {
-            label = '✓ 一致';
-            cls += 'match';
-          }
-          if (res.expiryStatus === 'impending') { label += ' / 切迫'; cls = 'stock-item-state impending'; }
-          else if (res.expiryStatus === 'expired') { label += ' / 期限切'; cls = 'stock-item-state diff'; }
-          stateEl.className = cls;
-          stateEl.textContent = label;
-          recBtn.textContent = '更新';
-          recBtn.disabled = false;
-          toast(res.message, res.diffStatus === 'diff' ? 'error' : 'ok');
+          const msg = res.message || '記録しました';
+          toast(msg, res.diffStatus === 'diff' ? 'error' : 'ok');
+          currentItemIndex++;
+          renderCurrentItem();
         })
-        .catch((err) => {
+        .catch(function (err) {
           toast('エラー: ' + err.message, 'error');
-          recBtn.disabled = false;
-          recBtn.textContent = '記録';
+          nextBtn.disabled = false;
+          nextBtn.textContent = '📝 記録して次へ';
         });
     }
 
