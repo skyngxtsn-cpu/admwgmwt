@@ -6,16 +6,18 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="棚卸し">
-  <meta name="theme-color" content="#1d4ed8">
+  <meta name="theme-color" content="#0f172a">
   <title>薬局棚卸し</title>
   <style>
     :root {
-      --bg: #f6f7f9; --card-bg: #ffffff; --text: #1a1a1a;
-      --muted: #6b7280; --border: #e5e7eb;
-      --primary: #1d4ed8; --primary-dark: #1e40af;
+      --bg: #f1f5f9; --card-bg: #ffffff; --text: #0f172a;
+      --muted: #64748b; --border: #e2e8f0;
+      --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #eff6ff;
       --secondary: #475569; --danger: #dc2626;
-      --warn: #d97706; --ok: #047857;
-      --shadow: 0 1px 3px rgba(0,0,0,0.06);
+      --warn: #d97706; --ok: #059669;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+      --radius: 12px;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
@@ -26,53 +28,60 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
     .app-header {
-      background: var(--primary); color: #fff;
-      padding: 14px 16px; position: sticky; top: 0; z-index: 10;
-      box-shadow: var(--shadow);
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      color: #fff; padding: 16px 16px 14px;
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 2px 8px rgba(30,58,138,0.3);
     }
-    .app-header h1 { margin: 0 0 8px 0; font-size: 18px; font-weight: 600; }
+    .app-header h1 { margin: 0 0 8px 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
     .inventory-date { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-    .inventory-date label { opacity: 0.9; }
+    .inventory-date label { opacity: 0.85; font-size: 13px; }
     .inventory-date input {
-      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
-      color: #fff; padding: 6px 8px; border-radius: 6px; font-size: 15px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; padding: 6px 10px; border-radius: 8px; font-size: 15px;
     }
     main { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
-    .card { background: var(--card-bg); border-radius: 10px; padding: 14px; box-shadow: var(--shadow); }
-    .section-label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+    .card {
+      background: var(--card-bg); border-radius: var(--radius);
+      padding: 16px; box-shadow: var(--shadow);
+    }
+    .section-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
     .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     input[type="search"], input[type="text"], input[type="number"], input[type="date"], input[type="month"] {
-      width: 100%; padding: 12px; font-size: 16px;
-      border: 1px solid var(--border); border-radius: 8px;
+      width: 100%; padding: 12px 14px; font-size: 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
       background: #fff; color: var(--text);
+      transition: border-color 0.15s;
     }
-    input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+    input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
     .primary-btn {
       width: 100%; margin-top: 14px; padding: 14px;
-      font-size: 17px; font-weight: 600; color: #fff;
-      background: var(--primary); border: none; border-radius: 8px; cursor: pointer;
+      font-size: 16px; font-weight: 700; color: #fff;
+      background: var(--primary); border: none; border-radius: 10px; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(37,99,235,0.25);
+      transition: transform 0.1s;
     }
-    .primary-btn:active { background: var(--primary-dark); }
-    .primary-btn:disabled { background: #9ca3af; }
+    .primary-btn:active { background: var(--primary-dark); transform: scale(0.98); }
+    .primary-btn:disabled { background: #94a3b8; box-shadow: none; }
     .secondary-btn {
       width: 100%; padding: 12px; font-size: 15px; color: #fff;
-      background: var(--secondary); border: none; border-radius: 8px; cursor: pointer;
+      background: var(--secondary); border: none; border-radius: 10px; cursor: pointer;
     }
-    .link-btn { background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; padding: 4px 8px; }
+    .link-btn { background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; padding: 4px 8px; font-weight: 600; }
     .suggest-list {
       list-style: none; margin: 8px 0 0; padding: 0;
       max-height: 320px; overflow-y: auto;
-      border: 1px solid var(--border); border-radius: 8px;
+      border: 1.5px solid var(--border); border-radius: 10px;
     }
-    .suggest-list li { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .suggest-list li { padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
     .suggest-list li:last-child { border-bottom: none; }
-    .suggest-list li:active { background: #eff6ff; }
+    .suggest-list li:active { background: var(--primary-light); }
     .suggest-list .name { font-weight: 600; }
     .suggest-list .meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .selected-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
-    .selected-name { font-size: 17px; font-weight: 600; }
+    .selected-name { font-size: 17px; font-weight: 700; }
     .selected-spec { font-size: 14px; color: var(--muted); margin-top: 2px; }
     .recent-list { list-style: none; margin: 0; padding: 0; }
     .recent-list li { padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -87,13 +96,13 @@
     .delete-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .hidden { display: none !important; }
     .toast {
-      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-      padding: 14px 20px; border-radius: 10px; font-size: 15px; font-weight: 600;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+      padding: 14px 24px; border-radius: var(--radius); font-size: 15px; font-weight: 600;
+      box-shadow: var(--shadow-md);
       max-width: 90%; text-align: center; z-index: 100;
+      animation: toastIn 0.2s ease-out;
     }
-    .toast.impending { background: #fee2e2; color: var(--danger); }
-    .toast.expired { background: #f3f4f6; color: var(--secondary); }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
     .toast.ok { background: #d1fae5; color: var(--ok); }
     .toast.error { background: #fef3c7; color: var(--warn); }
     .mode-tabs {
@@ -102,98 +111,157 @@
       position: sticky; top: 0; z-index: 9;
     }
     .mode-tabs button {
-      flex: 1; padding: 12px; background: none;
+      flex: 1; padding: 13px; background: none;
       border: none; border-bottom: 3px solid transparent;
-      font-size: 15px; cursor: pointer; color: var(--muted);
+      font-size: 14px; font-weight: 500; cursor: pointer; color: var(--muted);
+      transition: color 0.15s;
     }
     .mode-tabs button.active {
-      color: var(--primary); border-bottom-color: var(--primary); font-weight: 600;
+      color: var(--primary); border-bottom-color: var(--primary); font-weight: 700;
     }
     .import-btn {
       width: 100%; padding: 14px;
-      background: #6366f1; color: #fff;
-      border: none; border-radius: 8px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff;
+      border: none; border-radius: 10px;
       font-size: 15px; font-weight: 600; cursor: pointer;
+      box-shadow: 0 2px 6px rgba(99,102,241,0.3);
     }
-    .import-btn:active { background: #4f46e5; }
+    .import-btn:active { opacity: 0.9; }
     .shelf-list {
       display: grid; grid-template-columns: repeat(2, 1fr);
       gap: 8px; margin-top: 4px;
     }
     .shelf-item {
-      background: #f3f4f6; border: 1px solid var(--border);
-      padding: 14px 8px; border-radius: 8px; cursor: pointer;
-      text-align: center;
+      background: #f8fafc; border: 1.5px solid var(--border);
+      padding: 14px 8px; border-radius: 10px; cursor: pointer;
+      text-align: center; transition: border-color 0.15s, background 0.15s;
+      position: relative;
     }
-    .shelf-item:active { background: #e5e7eb; }
+    .shelf-item:active { background: var(--primary-light); border-color: var(--primary); }
+    .shelf-item.done { border-color: var(--ok); background: #f0fdf4; }
+    .shelf-item.done::after {
+      content: '✓'; position: absolute; top: 6px; right: 8px;
+      font-size: 11px; font-weight: 700; color: var(--ok);
+    }
     .shelf-name { font-weight: 600; font-size: 14px; }
     .shelf-count { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    /* カード式品目表示 */
     .stock-card {
-      background: var(--card-bg); border-radius: 12px;
-      padding: 20px 16px; box-shadow: var(--shadow);
-      min-height: 50vh;
-      display: flex; flex-direction: column; gap: 16px;
+      background: var(--card-bg); border-radius: 16px;
+      padding: 24px 18px; box-shadow: var(--shadow-md);
+      min-height: 55vh;
+      display: flex; flex-direction: column; gap: 0;
     }
-    .stock-card-name { font-weight: 700; font-size: 20px; line-height: 1.3; }
-    .stock-card-meta { font-size: 14px; color: var(--muted); }
-    .stock-qty-section { padding: 12px 0; border-top: 1px solid var(--border); }
-    .stock-qty-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .stock-card-name {
+      font-weight: 800; font-size: 21px; line-height: 1.3;
+      color: var(--text); margin-bottom: 4px;
+    }
+    .stock-card-meta { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+    .stock-qty-section {
+      padding: 16px 0; border-top: 1px solid var(--border);
+    }
+    .stock-qty-label {
+      font-size: 14px; color: var(--text); margin-bottom: 10px; font-weight: 600;
+    }
+    .stock-qty-label span { color: var(--primary); font-size: 20px; font-weight: 800; }
     .stock-qty-row { display: flex; gap: 10px; align-items: center; }
     .stock-qty-ok {
-      padding: 12px 20px; font-size: 16px; font-weight: 700;
-      background: #d1fae5; color: var(--ok); border: 2px solid var(--ok);
-      border-radius: 8px; cursor: pointer; white-space: nowrap;
+      padding: 14px 22px; font-size: 15px; font-weight: 700;
+      background: #ecfdf5; color: var(--ok); border: 2px solid var(--ok);
+      border-radius: 10px; cursor: pointer; white-space: nowrap;
+      transition: all 0.15s;
     }
-    .stock-qty-ok:active { background: #a7f3d0; }
+    .stock-qty-ok:active { transform: scale(0.96); }
     .stock-qty-ok.checked {
-      background: var(--ok); color: #fff;
+      background: var(--ok); color: #fff; border-color: var(--ok);
     }
     .stock-qty-input {
-      flex: 1; padding: 12px; font-size: 18px; font-weight: 600;
-      border: 1px solid var(--border); border-radius: 8px;
-      text-align: center;
+      flex: 1; padding: 14px; font-size: 20px; font-weight: 700;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      text-align: center; width: auto;
     }
-    .stock-expiry-section { padding: 12px 0; border-top: 1px solid var(--border); }
-    .stock-expiry-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .stock-expiry-section {
+      padding: 16px 0; border-top: 1px solid var(--border);
+    }
+    .stock-expiry-label { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
     .stock-expiry-row { margin-bottom: 8px; }
     .stock-expiry-row input {
-      width: 100%; padding: 12px; font-size: 16px;
-      border: 1px solid var(--border); border-radius: 8px;
+      width: 100%; padding: 12px 14px; font-size: 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
     }
+    .stock-expiry-row input.invalid { border-color: var(--danger); background: #fef2f2; }
+    .stock-actions { margin-top: auto; padding-top: 16px; }
     .stock-next-btn {
-      width: 100%; padding: 16px; margin-top: auto;
-      font-size: 18px; font-weight: 700; color: #fff;
-      background: var(--primary); border: none; border-radius: 10px;
-      cursor: pointer; box-shadow: 0 2px 8px rgba(29,78,216,0.3);
+      width: 100%; padding: 18px;
+      font-size: 17px; font-weight: 700; color: #fff;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8); border: none; border-radius: 12px;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+      transition: transform 0.1s;
     }
-    .stock-next-btn:active { background: var(--primary-dark); }
-    .stock-next-btn:disabled { background: #9ca3af; box-shadow: none; }
+    .stock-next-btn:active { transform: scale(0.98); }
+    .stock-next-btn:disabled { background: #94a3b8; box-shadow: none; }
+    .stock-nav-row {
+      display: flex; gap: 8px; margin-top: 10px;
+    }
+    .stock-prev-btn {
+      flex: 1; padding: 12px;
+      font-size: 14px; font-weight: 600; color: var(--muted);
+      background: #f1f5f9; border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer;
+    }
+    .stock-prev-btn:disabled { opacity: 0.4; }
     .stock-skip-btn {
-      width: 100%; padding: 12px; margin-top: 8px;
-      font-size: 14px; color: var(--muted);
-      background: none; border: 1px solid var(--border);
-      border-radius: 8px; cursor: pointer;
+      flex: 1; padding: 12px;
+      font-size: 14px; font-weight: 600; color: var(--muted);
+      background: #f1f5f9; border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer;
     }
     .stock-header {
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 12px;
     }
     .stock-back-btn {
-      background: none; border: 1px solid var(--border);
-      padding: 8px 16px; border-radius: 6px;
-      cursor: pointer; font-size: 13px;
+      background: #f1f5f9; border: 1px solid var(--border);
+      padding: 8px 14px; border-radius: 8px;
+      cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted);
     }
     .stock-progress {
-      font-size: 13px; color: var(--muted); font-weight: 600;
+      font-size: 13px; color: var(--muted); font-weight: 700;
+      background: #f1f5f9; padding: 6px 12px; border-radius: 999px;
     }
+    .stock-search-row {
+      display: flex; gap: 8px; margin-bottom: 12px;
+    }
+    .stock-search-input {
+      flex: 1; padding: 8px 12px; font-size: 14px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+    }
+    .stock-search-results {
+      background: var(--card-bg); border: 1.5px solid var(--border);
+      border-radius: 10px; max-height: 200px; overflow-y: auto;
+      margin-bottom: 12px; box-shadow: var(--shadow);
+    }
+    .stock-search-results div {
+      padding: 10px 14px; cursor: pointer; font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .stock-search-results div:last-child { border-bottom: none; }
+    .stock-search-results div:active { background: var(--primary-light); }
+    .stock-search-results .match-idx { color: var(--muted); font-size: 12px; margin-left: 8px; }
     .stock-complete {
-      text-align: center; padding: 40px 16px;
+      text-align: center; padding: 48px 16px;
+      background: var(--card-bg); border-radius: 16px;
+      box-shadow: var(--shadow-md);
     }
-    .stock-complete-icon { font-size: 48px; margin-bottom: 12px; }
-    .stock-complete-msg { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+    .stock-complete-icon { font-size: 56px; margin-bottom: 16px; }
+    .stock-complete-msg { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .stock-complete-summary { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.8; }
+    .stock-complete-summary .diff { color: var(--danger); font-weight: 600; }
+    .stock-complete-summary .imp { color: var(--warn); font-weight: 600; }
     .shelf-search {
-      width: 100%; padding: 8px 12px;
-      margin-bottom: 8px; font-size: 14px;
+      width: 100%; padding: 10px 14px;
+      margin-bottom: 8px; font-size: 15px;
+      border: 1.5px solid var(--border); border-radius: 10px;
     }
     .config-banner {
       padding: 10px 14px; background: #fef3c7; color: #92400e;
@@ -286,22 +354,24 @@
         <button type="button" id="backToShelfList" class="stock-back-btn">← 棚版一覧</button>
         <span id="stockProgress" class="stock-progress"></span>
       </div>
+      <div class="stock-search-row">
+        <input type="search" id="stockItemSearch" class="stock-search-input" placeholder="品目を検索してジャンプ…" autocomplete="off">
+      </div>
+      <div id="stockSearchResults" class="stock-search-results hidden"></div>
       <div id="stockCardContainer"></div>
     </section>
   </main>
-
 
   <div id="toast" class="toast" hidden></div>
 
   <script>
   (function () {
-    // ===== ここを編集：GAS Web App の URL に置き換え =====
     const API_URL = 'https://script.google.com/macros/s/AKfycbxq0z02p3_W0iddUhvRTAdRmgv1YpJqwdbeb7mypQ9dc6r4ehpY55Ol4uHRPs2KfgIU/exec';
-    // ====================================================
 
     const SEARCH_DEBOUNCE_MS = 100;
     const MIN_QUERY_LEN = 2;
     const MAX_RESULTS = 20;
+    const STORAGE_KEY = 'pharmacy_stock_progress';
 
     const $ = (id) => document.getElementById(id);
     let selected = null;
@@ -314,11 +384,45 @@
     let currentShelfName = '';
     let currentItemIndex = 0;
     let qtyConfirmed = false;
+    let shelfResults = {}; // { idx: { diffStatus, expiryStatus } } 棚内の記録結果
+    let completedShelves = {}; // localStorage から復元
 
     if (!API_URL || API_URL.indexOf('PASTE_') === 0) {
       $('configBanner').classList.remove('hidden');
     }
 
+    // ─── localStorage 中断・再開 ───
+    function saveProgress() {
+      const data = {
+        shelf: currentShelfName,
+        index: currentItemIndex,
+        results: shelfResults,
+        date: $('inventoryDate').value,
+      };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+    }
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) { return null; }
+    }
+    function clearProgress() {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    }
+    function loadCompletedShelves() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY + '_done');
+        if (raw) completedShelves = JSON.parse(raw);
+      } catch (e) {}
+    }
+    function markShelfDone(shelf) {
+      completedShelves[shelf] = $('inventoryDate').value;
+      try { localStorage.setItem(STORAGE_KEY + '_done', JSON.stringify(completedShelves)); } catch (e) {}
+    }
+
+    // ─── API ───
     async function callApi(action, payload) {
       const res = await fetch(API_URL, {
         method: 'POST',
@@ -333,8 +437,10 @@
       return data.result;
     }
 
+    // ─── 初期化 ───
     function init() {
       initInventoryDate();
+      loadCompletedShelves();
       bindSearch();
       bindForm();
       bindRecent();
@@ -343,13 +449,38 @@
       loadRecent();
       loadAllMedicines();
       loadShelves();
+      checkResume();
     }
 
+    function checkResume() {
+      const saved = loadProgress();
+      if (saved && saved.shelf && saved.date === $('inventoryDate').value) {
+        if (confirm('「' + saved.shelf + '」の続き（' + (saved.index + 1) + '品目〜）を再開しますか？')) {
+          currentShelfName = saved.shelf;
+          currentItemIndex = saved.index;
+          shelfResults = saved.results || {};
+          $('shelfSelectSection').classList.add('hidden');
+          $('shelfDetailSection').classList.remove('hidden');
+          $('stockProgress').textContent = '読込中…';
+          callApi('getStockByShelf', { shelf: saved.shelf })
+            .then(function (rows) {
+              currentShelfItems = rows || [];
+              renderCurrentItem();
+            })
+            .catch(function (err) {
+              $('stockCardContainer').innerHTML = '<div class="hint">エラー: ' + err.message + '</div>';
+            });
+        } else {
+          clearProgress();
+        }
+      }
+    }
+
+    // ─── モード切替 ───
     function bindModeTabs() {
       $('modeSearchBtn').addEventListener('click', () => showMode('search'));
       $('modeStockBtn').addEventListener('click', () => showMode('stock'));
     }
-
     function showMode(mode) {
       const search = mode === 'search';
       $('searchMode').classList.toggle('hidden', !search);
@@ -359,14 +490,62 @@
       if (!search && !shelvesLoaded) loadShelves();
     }
 
+    // ─── 棚卸しモード ───
     function bindStockMode() {
       $('reloadShelvesBtn').addEventListener('click', () => { shelvesLoaded = false; loadShelves(); });
       $('shelfSearch').addEventListener('input', renderShelfList);
       $('backToShelfList').addEventListener('click', () => {
         $('shelfSelectSection').classList.remove('hidden');
         $('shelfDetailSection').classList.add('hidden');
+        $('stockItemSearch').value = '';
+        $('stockSearchResults').classList.add('hidden');
       });
       $('importStockBtn').addEventListener('click', startImport);
+      // 棚内品目検索
+      $('stockItemSearch').addEventListener('input', function () {
+        const q = this.value.trim();
+        const results = $('stockSearchResults');
+        if (q.length < 1 || currentShelfItems.length === 0) {
+          results.classList.add('hidden');
+          return;
+        }
+        const qKana = toKatakana(q);
+        const hits = [];
+        currentShelfItems.forEach(function (item, idx) {
+          if (
+            item.name.indexOf(q) !== -1 ||
+            item.name.indexOf(qKana) !== -1 ||
+            (item.kana && item.kana.indexOf(qKana) !== -1)
+          ) {
+            hits.push({ item: item, idx: idx });
+          }
+        });
+        if (hits.length === 0) {
+          results.innerHTML = '<div style="color:var(--muted)">該当なし</div>';
+          results.classList.remove('hidden');
+          return;
+        }
+        results.innerHTML = '';
+        hits.slice(0, 10).forEach(function (h) {
+          const div = document.createElement('div');
+          div.textContent = h.item.name;
+          const span = document.createElement('span');
+          span.className = 'match-idx';
+          span.textContent = (h.idx + 1) + '番目';
+          div.appendChild(span);
+          div.addEventListener('click', function () {
+            currentItemIndex = h.idx;
+            results.classList.add('hidden');
+            $('stockItemSearch').value = '';
+            renderCurrentItem();
+          });
+          results.appendChild(div);
+        });
+        results.classList.remove('hidden');
+      });
+      $('stockItemSearch').addEventListener('blur', function () {
+        setTimeout(function () { $('stockSearchResults').classList.add('hidden'); }, 200);
+      });
     }
 
     function loadShelves() {
@@ -383,7 +562,6 @@
     }
 
     function normalizeShelfKey(s) {
-      // "F-002-" → "f2", "K-001-記帳" → "k1記帳", "冷所-001-" → "冷所1"
       return s.replace(/-/g, '').replace(/0+(\d)/g, '$1').toLowerCase();
     }
 
@@ -394,16 +572,20 @@
       list.innerHTML = '';
       const filtered = shelves.filter(function (s) {
         if (!filter) return true;
-        // 元の名前でも、正規化した名前でもヒットすればOK
         return s.shelf.toLowerCase().includes(filter) || normalizeShelfKey(s.shelf).includes(filterKey);
       });
       if (filtered.length === 0) {
         list.innerHTML = '<div class="hint">該当する棚版なし</div>';
         return;
       }
-      filtered.forEach((s) => {
+      const today = $('inventoryDate').value;
+      filtered.forEach(function (s) {
         const item = document.createElement('div');
         item.className = 'shelf-item';
+        // 済マーク
+        if (completedShelves[s.shelf] === today) {
+          item.classList.add('done');
+        }
         const name = document.createElement('div');
         name.className = 'shelf-name';
         name.textContent = s.shelf;
@@ -420,6 +602,7 @@
     function loadStockByShelf(shelf) {
       currentShelfName = shelf;
       currentItemIndex = 0;
+      shelfResults = {};
       $('shelfSelectSection').classList.add('hidden');
       $('shelfDetailSection').classList.remove('hidden');
       $('stockProgress').textContent = '読込中…';
@@ -434,26 +617,28 @@
         });
     }
 
+    // ─── カード式品目表示 ───
     function renderCurrentItem() {
       const container = $('stockCardContainer');
       container.innerHTML = '';
       qtyConfirmed = false;
 
-      // 全品目完了
+      // 全品目完了 → サマリー表示 + 期限一覧を自動更新
       if (currentItemIndex >= currentShelfItems.length) {
-        $('stockProgress').textContent = '';
-        container.innerHTML =
-          '<div class="stock-complete">' +
-          '<div class="stock-complete-icon">✅</div>' +
-          '<div class="stock-complete-msg">' + currentShelfName + ' 完了</div>' +
-          '<button type="button" class="primary-btn" onclick="document.getElementById(\'backToShelfList\').click()">棚版一覧に戻る</button>' +
-          '</div>';
+        clearProgress();
+        markShelfDone(currentShelfName);
+        showCompleteSummary(container);
+        // バックグラウンドで期限一覧ピボットを再構築
+        callApi('rebuildPivot').catch(function () {});
         return;
       }
 
+      // 進捗保存
+      saveProgress();
+
       const item = currentShelfItems[currentItemIndex];
       const total = currentShelfItems.length;
-      $('stockProgress').textContent = (currentItemIndex + 1) + ' / ' + total + '品目';
+      $('stockProgress').textContent = (currentItemIndex + 1) + ' / ' + total;
 
       const card = document.createElement('div');
       card.className = 'stock-card';
@@ -464,7 +649,7 @@
       nameEl.textContent = item.name;
       card.appendChild(nameEl);
 
-      // メタ情報
+      // メタ
       const metaEl = document.createElement('div');
       metaEl.className = 'stock-card-meta';
       const parts = [item.unit, item.maker].filter(Boolean);
@@ -478,7 +663,7 @@
       qtySection.className = 'stock-qty-section';
       const qtyLabel = document.createElement('div');
       qtyLabel.className = 'stock-qty-label';
-      qtyLabel.textContent = '理論在庫: ' + item.theoreticalStock + (item.unit || '');
+      qtyLabel.innerHTML = '理論在庫: <span>' + item.theoreticalStock + '</span>' + (item.unit || '');
       qtySection.appendChild(qtyLabel);
 
       const qtyRow = document.createElement('div');
@@ -487,7 +672,7 @@
       okBtn.type = 'button';
       okBtn.className = 'stock-qty-ok';
       okBtn.id = 'qtyOkBtn';
-      okBtn.textContent = '⚪︎ 一致';
+      okBtn.textContent = '一致';
       okBtn.addEventListener('click', function () {
         qtyConfirmed = true;
         okBtn.classList.add('checked');
@@ -504,10 +689,9 @@
       qtyInput.inputMode = 'decimal';
       qtyInput.value = '';
       qtyInput.addEventListener('input', function () {
-        // 数量手入力時はOKボタンを解除
         qtyConfirmed = false;
         okBtn.classList.remove('checked');
-        okBtn.textContent = '⚪︎ 一致';
+        okBtn.textContent = '一致';
       });
       qtyRow.appendChild(okBtn);
       qtyRow.appendChild(qtyInput);
@@ -519,7 +703,7 @@
       expSection.className = 'stock-expiry-section';
       const expLabel = document.createElement('div');
       expLabel.className = 'stock-expiry-label';
-      expLabel.textContent = '期限（切迫品がある場合）';
+      expLabel.textContent = '期限（切迫品がある場合に入力）';
       expSection.appendChild(expLabel);
       const expContainer = document.createElement('div');
       expContainer.id = 'expiryContainer';
@@ -527,29 +711,72 @@
       card.appendChild(expSection);
       addExpiryField(expContainer);
 
-      // 記録して次へボタン
+      // ボタンエリア
+      const actions = document.createElement('div');
+      actions.className = 'stock-actions';
+
       const nextBtn = document.createElement('button');
       nextBtn.type = 'button';
       nextBtn.className = 'stock-next-btn';
       nextBtn.id = 'stockNextBtn';
-      nextBtn.textContent = '📝 記録して次へ';
+      nextBtn.textContent = '記録して次へ';
       nextBtn.addEventListener('click', recordAndNext);
-      card.appendChild(nextBtn);
+      actions.appendChild(nextBtn);
 
-      // スキップボタン
+      const navRow = document.createElement('div');
+      navRow.className = 'stock-nav-row';
+      const prevBtn = document.createElement('button');
+      prevBtn.type = 'button';
+      prevBtn.className = 'stock-prev-btn';
+      prevBtn.textContent = '← 前へ';
+      prevBtn.disabled = currentItemIndex === 0;
+      prevBtn.addEventListener('click', function () {
+        if (currentItemIndex > 0) {
+          currentItemIndex--;
+          renderCurrentItem();
+        }
+      });
       const skipBtn = document.createElement('button');
       skipBtn.type = 'button';
       skipBtn.className = 'stock-skip-btn';
-      skipBtn.textContent = 'スキップ';
+      skipBtn.textContent = 'スキップ →';
       skipBtn.addEventListener('click', function () {
         currentItemIndex++;
         renderCurrentItem();
       });
-      card.appendChild(skipBtn);
+      navRow.appendChild(prevBtn);
+      navRow.appendChild(skipBtn);
+      actions.appendChild(navRow);
 
+      card.appendChild(actions);
       container.appendChild(card);
     }
 
+    function showCompleteSummary(container) {
+      $('stockProgress').textContent = '完了';
+      const total = currentShelfItems.length;
+      let recorded = 0, diffs = 0, impending = 0;
+      Object.values(shelfResults).forEach(function (r) {
+        recorded++;
+        if (r.diffStatus === 'diff') diffs++;
+        if (r.expiryStatus === 'impending' || r.expiryStatus === 'expired') impending++;
+      });
+      const skipped = total - recorded;
+
+      container.innerHTML =
+        '<div class="stock-complete">' +
+        '<div class="stock-complete-icon">✅</div>' +
+        '<div class="stock-complete-msg">' + currentShelfName + ' 完了</div>' +
+        '<div class="stock-complete-summary">' +
+        '記録: ' + recorded + '件' + (skipped > 0 ? ' / スキップ: ' + skipped + '件' : '') + '<br>' +
+        (diffs > 0 ? '<span class="diff">差異: ' + diffs + '件</span><br>' : '') +
+        (impending > 0 ? '<span class="imp">切迫・期限切: ' + impending + '件</span>' : '') +
+        '</div>' +
+        '<button type="button" class="primary-btn" onclick="document.getElementById(\'backToShelfList\').click()">棚版一覧に戻る</button>' +
+        '</div>';
+    }
+
+    // ─── 期限入力 ───
     function addExpiryField(container) {
       if (!container) container = $('expiryContainer');
       const row = document.createElement('div');
@@ -557,7 +784,7 @@
       const input = document.createElement('input');
       input.type = 'month';
       input.addEventListener('change', function () {
-        // 値が入力されたら、次の空欄がなければ追加
+        input.classList.remove('invalid');
         const rows = container.querySelectorAll('.stock-expiry-row input');
         const lastInput = rows[rows.length - 1];
         if (lastInput && lastInput.value) {
@@ -568,19 +795,36 @@
       container.appendChild(row);
     }
 
+    function validateExpiry(value) {
+      if (!/^\d{4}-\d{2}$/.test(value)) return false;
+      const year = Number(value.substring(0, 4));
+      const month = Number(value.substring(5, 7));
+      if (year < 2024 || year > 2040) return false;
+      if (month < 1 || month > 12) return false;
+      return true;
+    }
+
     function getExpiries() {
       const container = $('expiryContainer');
       if (!container) return [];
       const inputs = container.querySelectorAll('input');
       const values = [];
+      let hasInvalid = false;
       inputs.forEach(function (inp) {
-        if (inp.value && /^\d{4}-\d{2}$/.test(inp.value)) {
+        if (!inp.value) return;
+        if (validateExpiry(inp.value)) {
+          inp.classList.remove('invalid');
           values.push(inp.value);
+        } else {
+          inp.classList.add('invalid');
+          hasInvalid = true;
         }
       });
+      if (hasInvalid) return { error: '期限が不正です（YYYY-MM / 2024〜2040）' };
       return values;
     }
 
+    // ─── 記録 ───
     function recordAndNext() {
       const item = currentShelfItems[currentItemIndex];
       const qtyInput = $('qtyInput');
@@ -590,11 +834,15 @@
       } else if (qtyInput.value !== '') {
         qty = Number(qtyInput.value);
       } else {
-        toast('数量を入力するか「⚪︎ 一致」を押してください', 'error');
+        toast('数量を入力するか「一致」を押してください', 'error');
         return;
       }
 
       const expiries = getExpiries();
+      if (expiries && expiries.error) {
+        toast(expiries.error, 'error');
+        return;
+      }
       const inventoryDate = $('inventoryDate').value;
       const nextBtn = $('stockNextBtn');
       nextBtn.disabled = true;
@@ -608,6 +856,7 @@
       })
         .then(function (res) {
           item.theoreticalStock = qty;
+          shelfResults[currentItemIndex] = { diffStatus: res.diffStatus, expiryStatus: res.expiryStatus };
           const msg = res.message || '記録しました';
           toast(msg, res.diffStatus === 'diff' ? 'error' : 'ok');
           currentItemIndex++;
@@ -616,10 +865,11 @@
         .catch(function (err) {
           toast('エラー: ' + err.message, 'error');
           nextBtn.disabled = false;
-          nextBtn.textContent = '📝 記録して次へ';
+          nextBtn.textContent = '記録して次へ';
         });
     }
 
+    // ─── CSV取込 ───
     function startImport() {
       const input = document.createElement('input');
       input.type = 'file';
@@ -627,7 +877,7 @@
       input.addEventListener('change', () => {
         if (!input.files || input.files.length === 0) return;
         const file = input.files[0];
-        toast('在庫データを取込中…（数十秒かかる場合あり）', 'ok');
+        toast('在庫データを取込中…', 'ok');
         $('importStockBtn').disabled = true;
         file.arrayBuffer().then((buffer) => {
           const base64 = arrayBufferToBase64(buffer);
@@ -635,7 +885,7 @@
         })
           .then((res) => {
             const janCount = (res.janFromMaster || 0) + (res.janKept || 0);
-            toast('取込完了: ' + res.updated + '件更新, ' + res.added + '件追加 / JAN結合: ' + janCount + '件', 'ok');
+            toast('取込完了: ' + res.updated + '件更新, ' + res.added + '件追加', 'ok');
             shelvesLoaded = false;
             loadShelves();
           })
@@ -659,6 +909,7 @@
       return btoa(binary);
     }
 
+    // ─── 個別記録モード ───
     function loadAllMedicines() {
       $('searchHint').textContent = '医薬品マスタを読み込み中…';
       callApi('getAllMedicines')
@@ -831,7 +1082,6 @@
       $('reloadRecent').addEventListener('click', loadRecent);
     }
 
-
     function loadRecent() {
       callApi('getRecentRecords', { limit: 10 })
         .then(renderRecent)
@@ -844,7 +1094,7 @@
       if (!rows || rows.length === 0) {
         const li = document.createElement('li');
         li.textContent = '入力履歴はまだありません';
-        li.style.color = '#6b7280';
+        li.style.color = '#64748b';
         li.style.fontSize = '13px';
         list.appendChild(li);
         return;
