@@ -314,6 +314,11 @@
     }
     .shelf-change-btn:active { background: var(--primary-light); }
     .shelf-change-btn:disabled { opacity: 0.5; }
+    .shelf-change-select {
+      flex: 1; padding: 6px 10px; font-size: 14px;
+      border: 1.5px solid var(--primary); border-radius: 8px;
+      background: #fff; color: var(--text);
+    }
   </style>
 </head>
 <body>
@@ -796,34 +801,78 @@
         card.appendChild(diffInfo);
       }
 
-      // 棚番変更ボタン
+      // 棚番変更
       if (item.rowNumber) {
         const shelfRow = document.createElement('div');
         shelfRow.className = 'shelf-change-row';
         const shelfLabel = document.createElement('span');
         shelfLabel.className = 'shelf-change-label';
         shelfLabel.textContent = '棚番: ' + (item.shelf || 'なし');
+        // セレクトボックス（初期非表示）
+        const shelfSelect = document.createElement('select');
+        shelfSelect.className = 'shelf-change-select hidden';
+        var optNone = document.createElement('option');
+        optNone.value = '';
+        optNone.textContent = '（なし）';
+        shelfSelect.appendChild(optNone);
+        shelves.forEach(function (s) {
+          if (s.shelf === '（棚番なし）') return;
+          var opt = document.createElement('option');
+          opt.value = s.shelf;
+          opt.textContent = s.shelf;
+          if (s.shelf === item.shelf) opt.selected = true;
+          shelfSelect.appendChild(opt);
+        });
         const shelfBtn = document.createElement('button');
         shelfBtn.type = 'button';
         shelfBtn.className = 'shelf-change-btn';
         shelfBtn.textContent = '変更';
+        const shelfOkBtn = document.createElement('button');
+        shelfOkBtn.type = 'button';
+        shelfOkBtn.className = 'shelf-change-btn hidden';
+        shelfOkBtn.textContent = '決定';
+        const shelfCancelBtn = document.createElement('button');
+        shelfCancelBtn.type = 'button';
+        shelfCancelBtn.className = 'shelf-change-btn hidden';
+        shelfCancelBtn.style.color = 'var(--muted)';
+        shelfCancelBtn.textContent = '×';
+        // 変更ボタン → セレクト表示
         shelfBtn.addEventListener('click', function () {
-          var newShelf = prompt('新しい棚番を入力', item.shelf || '');
-          if (newShelf === null) return;
-          newShelf = newShelf.trim();
-          shelfBtn.disabled = true;
-          shelfBtn.textContent = '変更中…';
+          shelfBtn.classList.add('hidden');
+          shelfLabel.classList.add('hidden');
+          shelfSelect.classList.remove('hidden');
+          shelfOkBtn.classList.remove('hidden');
+          shelfCancelBtn.classList.remove('hidden');
+        });
+        // キャンセル
+        shelfCancelBtn.addEventListener('click', function () {
+          shelfBtn.classList.remove('hidden');
+          shelfLabel.classList.remove('hidden');
+          shelfSelect.classList.add('hidden');
+          shelfOkBtn.classList.add('hidden');
+          shelfCancelBtn.classList.add('hidden');
+        });
+        // 決定
+        shelfOkBtn.addEventListener('click', function () {
+          var newShelf = shelfSelect.value;
+          if (newShelf === item.shelf) { shelfCancelBtn.click(); return; }
+          shelfOkBtn.disabled = true;
+          shelfOkBtn.textContent = '変更中…';
           callApi('updateShelf', { rowNumber: item.rowNumber, newShelf: newShelf })
             .then(function (res) {
               item.shelf = newShelf;
               shelfLabel.textContent = '棚番: ' + (newShelf || 'なし');
               toast('棚番を変更: ' + (res.oldShelf || 'なし') + ' → ' + (newShelf || 'なし'), 'ok');
+              shelfCancelBtn.click();
             })
             .catch(function (err) { toast('エラー: ' + err.message, 'error'); })
-            .finally(function () { shelfBtn.disabled = false; shelfBtn.textContent = '変更'; });
+            .finally(function () { shelfOkBtn.disabled = false; shelfOkBtn.textContent = '決定'; });
         });
         shelfRow.appendChild(shelfLabel);
+        shelfRow.appendChild(shelfSelect);
         shelfRow.appendChild(shelfBtn);
+        shelfRow.appendChild(shelfOkBtn);
+        shelfRow.appendChild(shelfCancelBtn);
         card.appendChild(shelfRow);
       }
 
