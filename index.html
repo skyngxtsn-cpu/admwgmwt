@@ -267,6 +267,53 @@
       padding: 10px 14px; background: #fef3c7; color: #92400e;
       font-size: 13px; text-align: center;
     }
+    .stock-mode-btns {
+      display: flex; gap: 6px; margin-top: 6px;
+    }
+    .stock-mode-btn {
+      flex: 1; padding: 10px 6px; font-size: 13px; font-weight: 600;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: #f8fafc; color: var(--muted); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .stock-mode-btn.active {
+      border-color: var(--primary); background: var(--primary-light); color: var(--primary);
+    }
+    .stock-mode-btn[data-mode="diff"].active {
+      border-color: var(--danger); background: #fef2f2; color: var(--danger);
+    }
+    .shelf-progress-bar {
+      display: flex; align-items: center; gap: 6px; margin-top: 2px;
+    }
+    .shelf-progress-bar-bg {
+      flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
+    }
+    .shelf-progress-bar-fill {
+      height: 100%; background: var(--ok); border-radius: 2px; transition: width 0.3s;
+    }
+    .shelf-progress-text {
+      font-size: 11px; color: var(--muted); white-space: nowrap;
+    }
+    .diff-badge {
+      display: inline-block; background: #fef2f2; color: var(--danger);
+      font-size: 11px; font-weight: 700; padding: 2px 8px;
+      border-radius: 999px; margin-left: 4px;
+    }
+    .shelf-change-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; background: #f8fafc; border-radius: 8px;
+      margin-bottom: 4px;
+    }
+    .shelf-change-label {
+      font-size: 13px; color: var(--muted); font-weight: 600;
+    }
+    .shelf-change-btn {
+      padding: 5px 14px; font-size: 12px; font-weight: 600;
+      background: #fff; border: 1.5px solid var(--border); border-radius: 8px;
+      color: var(--secondary); cursor: pointer;
+    }
+    .shelf-change-btn:active { background: var(--primary-light); }
+    .shelf-change-btn:disabled { opacity: 0.5; }
   </style>
 </head>
 <body>
@@ -340,6 +387,15 @@
       <div class="hint">板から出した F メニューCSV をそのまま取込（Shift_JIS対応）</div>
     </section>
 
+    <section class="card" id="stockModeSelect">
+      <span class="section-label">カウントモード</span>
+      <div class="stock-mode-btns">
+        <button type="button" class="stock-mode-btn active" data-mode="all">全品目</button>
+        <button type="button" class="stock-mode-btn" data-mode="uncounted">未実施のみ</button>
+        <button type="button" class="stock-mode-btn" data-mode="diff">差異品再カウント</button>
+      </div>
+    </section>
+
     <section class="card" id="shelfSelectSection">
       <div class="section-head">
         <span class="section-label">棚版を選択</span>
@@ -386,6 +442,7 @@
     let qtyConfirmed = false;
     let shelfResults = {}; // { idx: { diffStatus, expiryStatus } } 棚内の記録結果
     let completedShelves = {}; // localStorage から復元
+    let stockCountMode = 'all'; // 'all' | 'uncounted' | 'diff'
 
     if (!API_URL || API_URL.indexOf('PASTE_') === 0) {
       $('configBanner').classList.remove('hidden');
@@ -460,6 +517,7 @@
           currentItemIndex = saved.index;
           shelfResults = saved.results || {};
           $('shelfSelectSection').classList.add('hidden');
+          $('stockModeSelect').classList.add('hidden');
           $('shelfDetailSection').classList.remove('hidden');
           $('stockProgress').textContent = '読込中…';
           callApi('getStockByShelf', { shelf: saved.shelf })
@@ -496,11 +554,29 @@
       $('shelfSearch').addEventListener('input', renderShelfList);
       $('backToShelfList').addEventListener('click', () => {
         $('shelfSelectSection').classList.remove('hidden');
+        $('stockModeSelect').classList.remove('hidden');
         $('shelfDetailSection').classList.add('hidden');
         $('stockItemSearch').value = '';
         $('stockSearchResults').classList.add('hidden');
+        // 差異品モードから戻った場合、棚一覧を再読み込み
+        if (!shelvesLoaded) loadShelves();
       });
       $('importStockBtn').addEventListener('click', startImport);
+      // モード切替ボタン
+      document.querySelectorAll('.stock-mode-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.stock-mode-btn').forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          stockCountMode = btn.dataset.mode;
+          if (stockCountMode === 'diff') {
+            loadDiffItems();
+          } else {
+            $('shelfSelectSection').classList.remove('hidden');
+            $('shelfDetailSection').classList.add('hidden');
+            renderShelfList();
+          }
+        });
+      });
       // 棚内品目検索
       $('stockItemSearch').addEventListener('input', function () {
         const q = this.value.trim();
@@ -574,26 +650,48 @@
         if (!filter) return true;
         return s.shelf.toLowerCase().includes(filter) || normalizeShelfKey(s.shelf).includes(filterKey);
       });
-      if (filtered.length === 0) {
-        list.innerHTML = '<div class="hint">該当する棚版なし</div>';
+      // 未実施モードでは未完了棚のみ表示
+      const display = stockCountMode === 'uncounted'
+        ? filtered.filter(function (s) { return (s.done || 0) < s.count; })
+        : filtered;
+      if (display.length === 0) {
+        list.innerHTML = stockCountMode === 'uncounted'
+          ? '<div class="hint">全棚の棚卸しが完了しています 🎉</div>'
+          : '<div class="hint">該当する棚版なし</div>';
         return;
       }
       const today = $('inventoryDate').value;
-      filtered.forEach(function (s) {
+      display.forEach(function (s) {
         const item = document.createElement('div');
         item.className = 'shelf-item';
-        // 済マーク
         if (completedShelves[s.shelf] === today) {
           item.classList.add('done');
         }
+        const topRow = document.createElement('div');
+        topRow.style.display = 'flex';
+        topRow.style.justifyContent = 'space-between';
+        topRow.style.alignItems = 'center';
         const name = document.createElement('div');
         name.className = 'shelf-name';
         name.textContent = s.shelf;
-        const count = document.createElement('div');
-        count.className = 'shelf-count';
-        count.textContent = s.count + '品目';
-        item.appendChild(name);
-        item.appendChild(count);
+        const countLabel = document.createElement('div');
+        countLabel.className = 'shelf-count';
+        const uncounted = s.count - (s.done || 0);
+        if (stockCountMode === 'uncounted') {
+          countLabel.textContent = '残 ' + uncounted + '品目';
+        } else {
+          countLabel.textContent = s.count + '品目';
+        }
+        topRow.appendChild(name);
+        topRow.appendChild(countLabel);
+        item.appendChild(topRow);
+        // 進捗バー
+        var pct = s.count > 0 ? Math.round(((s.done || 0) / s.count) * 100) : 0;
+        var progRow = document.createElement('div');
+        progRow.className = 'shelf-progress-bar';
+        progRow.innerHTML = '<div class="shelf-progress-bar-bg"><div class="shelf-progress-bar-fill" style="width:' + pct + '%"></div></div>' +
+          '<span class="shelf-progress-text">' + (s.done || 0) + '/' + s.count + ' (' + pct + '%)</span>';
+        item.appendChild(progRow);
         item.addEventListener('click', () => loadStockByShelf(s.shelf));
         list.appendChild(item);
       });
@@ -604,15 +702,45 @@
       currentItemIndex = 0;
       shelfResults = {};
       $('shelfSelectSection').classList.add('hidden');
+      $('stockModeSelect').classList.add('hidden');
       $('shelfDetailSection').classList.remove('hidden');
       $('stockProgress').textContent = '読込中…';
       $('stockCardContainer').innerHTML = '';
       callApi('getStockByShelf', { shelf: shelf })
         .then((rows) => {
-          currentShelfItems = rows || [];
+          var items = rows || [];
+          // 未実施モード: lastInventoryDate が空のもののみ
+          if (stockCountMode === 'uncounted') {
+            items = items.filter(function (it) { return !it.lastInventoryDate; });
+          }
+          currentShelfItems = items;
           renderCurrentItem();
         })
         .catch((err) => {
+          $('stockCardContainer').innerHTML = '<div class="hint">エラー: ' + err.message + '</div>';
+        });
+    }
+
+    function loadDiffItems() {
+      $('shelfSelectSection').classList.add('hidden');
+      $('shelfDetailSection').classList.remove('hidden');
+      $('stockModeSelect').classList.remove('hidden');
+      $('stockProgress').textContent = '読込中…';
+      $('stockCardContainer').innerHTML = '';
+      currentShelfName = '差異品再カウント';
+      currentItemIndex = 0;
+      shelfResults = {};
+      callApi('getDiffItems')
+        .then(function (items) {
+          if (!items || items.length === 0) {
+            $('stockCardContainer').innerHTML = '<div class="hint">差異品はありません 🎉</div>';
+            $('stockProgress').textContent = '';
+            return;
+          }
+          currentShelfItems = items;
+          renderCurrentItem();
+        })
+        .catch(function (err) {
           $('stockCardContainer').innerHTML = '<div class="hint">エラー: ' + err.message + '</div>';
         });
     }
@@ -626,7 +754,7 @@
       // 全品目完了 → サマリー表示 + 期限一覧を自動更新
       if (currentItemIndex >= currentShelfItems.length) {
         clearProgress();
-        markShelfDone(currentShelfName);
+        if (stockCountMode === 'all') markShelfDone(currentShelfName);
         showCompleteSummary(container);
         // バックグラウンドで期限一覧ピボットを再構築
         callApi('rebuildPivot')
@@ -654,11 +782,50 @@
       // メタ
       const metaEl = document.createElement('div');
       metaEl.className = 'stock-card-meta';
-      const parts = [item.unit, item.maker].filter(Boolean);
+      const metaParts = [item.unit, item.maker].filter(Boolean);
       const lastDate = item.lastInventoryDate ? '前回: ' + String(item.lastInventoryDate).substring(0, 10) : '';
-      if (lastDate) parts.push(lastDate);
-      metaEl.textContent = parts.join(' / ');
+      if (lastDate) metaParts.push(lastDate);
+      if (item.shelf) metaParts.unshift(item.shelf);
+      metaEl.textContent = metaParts.join(' / ');
       card.appendChild(metaEl);
+      // 差異品モード: 前回の差異情報を表示
+      if (stockCountMode === 'diff' && item.diff !== undefined) {
+        const diffInfo = document.createElement('div');
+        diffInfo.style.cssText = 'background:#fef2f2; color:var(--danger); padding:8px 12px; border-radius:8px; font-size:13px; font-weight:600; margin-bottom:4px;';
+        diffInfo.textContent = '前回差異: ' + (item.diff > 0 ? '+' : '') + item.diff + ' (理論' + item.oldTheoretical + ' → 実数' + item.theoreticalStock + ')';
+        card.appendChild(diffInfo);
+      }
+
+      // 棚番変更ボタン
+      if (item.rowNumber) {
+        const shelfRow = document.createElement('div');
+        shelfRow.className = 'shelf-change-row';
+        const shelfLabel = document.createElement('span');
+        shelfLabel.className = 'shelf-change-label';
+        shelfLabel.textContent = '棚番: ' + (item.shelf || 'なし');
+        const shelfBtn = document.createElement('button');
+        shelfBtn.type = 'button';
+        shelfBtn.className = 'shelf-change-btn';
+        shelfBtn.textContent = '変更';
+        shelfBtn.addEventListener('click', function () {
+          var newShelf = prompt('新しい棚番を入力', item.shelf || '');
+          if (newShelf === null) return;
+          newShelf = newShelf.trim();
+          shelfBtn.disabled = true;
+          shelfBtn.textContent = '変更中…';
+          callApi('updateShelf', { rowNumber: item.rowNumber, newShelf: newShelf })
+            .then(function (res) {
+              item.shelf = newShelf;
+              shelfLabel.textContent = '棚番: ' + (newShelf || 'なし');
+              toast('棚番を変更: ' + (res.oldShelf || 'なし') + ' → ' + (newShelf || 'なし'), 'ok');
+            })
+            .catch(function (err) { toast('エラー: ' + err.message, 'error'); })
+            .finally(function () { shelfBtn.disabled = false; shelfBtn.textContent = '変更'; });
+        });
+        shelfRow.appendChild(shelfLabel);
+        shelfRow.appendChild(shelfBtn);
+        card.appendChild(shelfRow);
+      }
 
       // 数量セクション
       const qtySection = document.createElement('div');
