@@ -841,6 +841,7 @@
         shelfLabel.textContent = '棚番: ' + (item.shelf || 'なし');
         // セレクトボックス（初期非表示）
         const shelfSelect = document.createElement('select');
+        shelfSelect.id = 'shelfChangeSelect';
         shelfSelect.className = 'shelf-change-select hidden';
         var optNone = document.createElement('option');
         optNone.value = '';
@@ -1104,10 +1105,11 @@
         expiries: expiries.length > 0 ? expiries : [],
         inventoryDate: inventoryDate,
       };
-      var shelfSelect = document.querySelector('.shelf-change-select:not(.hidden)');
-      if (shelfSelect) {
-        var selectedShelf = shelfSelect.value;
-        if (selectedShelf !== (item.shelf || '')) {
+      var shelfSelectEl = $('shelfChangeSelect');
+      if (shelfSelectEl && !shelfSelectEl.classList.contains('hidden')) {
+        var selectedShelf = shelfSelectEl.value;
+        var currentShelf = String(item.shelf || '').trim();
+        if (selectedShelf !== currentShelf) {
           payload.newShelf = selectedShelf;
         }
       }
