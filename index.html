@@ -1097,14 +1097,29 @@
       nextBtn.disabled = true;
       nextBtn.textContent = '記録中…';
 
-      callApi('updateStockItem', {
+      // 棚番変更がセレクト表示中なら newShelf を含める
+      var payload = {
         rowNumber: item.rowNumber,
         actualStock: qty,
         expiries: expiries.length > 0 ? expiries : [],
         inventoryDate: inventoryDate,
-      })
+      };
+      var shelfSelect = document.querySelector('.shelf-change-select:not(.hidden)');
+      if (shelfSelect) {
+        var selectedShelf = shelfSelect.value;
+        if (selectedShelf !== (item.shelf || '')) {
+          payload.newShelf = selectedShelf;
+        }
+      }
+
+      callApi('updateStockItem', payload)
         .then(function (res) {
           shelfResults[currentItemIndex] = { diffStatus: res.diffStatus, expiryStatus: res.expiryStatus };
+          // 棚番変更が反映された場合、itemを更新
+          if (res.shelfChanged && payload.newShelf !== undefined) {
+            item.shelf = payload.newShelf;
+            toast('棚番変更: → ' + (payload.newShelf || 'なし'), 'ok');
+          }
           const msg = res.message || '記録しました';
           toast(msg, res.diffStatus === 'diff' ? 'error' : 'ok');
           if (res.pivotError) toast('⚠️ ' + res.pivotError, 'error');
