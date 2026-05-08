@@ -319,6 +319,35 @@
       border: 1.5px solid var(--primary); border-radius: 8px;
       background: #fff; color: var(--text);
     }
+    .reset-btn {
+      width: 100%; padding: 12px; font-size: 14px; font-weight: 600;
+      background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
+      color: var(--muted); cursor: pointer;
+    }
+    .reset-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 100; display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .reset-dialog {
+      background: #fff; border-radius: 16px; padding: 24px;
+      max-width: 360px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .reset-dialog h3 { margin: 0 0 16px; font-size: 18px; color: var(--danger); }
+    .reset-dialog .reset-list { margin: 0 0 16px; padding: 0; list-style: none; font-size: 14px; }
+    .reset-dialog .reset-list li { padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .reset-dialog .reset-list .will-clear { color: var(--danger); font-weight: 600; }
+    .reset-dialog .reset-list .will-keep { color: var(--ok); }
+    .reset-confirm-input {
+      width: 100%; padding: 10px 12px; font-size: 15px;
+      border: 2px solid var(--border); border-radius: 8px; margin-bottom: 12px;
+    }
+    .reset-confirm-input:focus { border-color: var(--danger); outline: none; }
+    .reset-dialog-btns { display: flex; gap: 8px; }
+    .reset-dialog-btns button { flex: 1; padding: 12px; font-size: 15px; font-weight: 700; border-radius: 10px; cursor: pointer; }
+    .reset-cancel-btn { background: #f1f5f9; border: 1px solid var(--border); color: var(--text); }
+    .reset-exec-btn { background: var(--danger); border: none; color: #fff; }
+    .reset-exec-btn:disabled { background: #ccc; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -390,6 +419,7 @@
     <section class="card">
       <button type="button" id="importStockBtn" class="import-btn">📥 板の在庫データを取込</button>
       <div class="hint">板から出した F メニューCSV をそのまま取込（Shift_JIS対応）</div>
+      <button type="button" id="resetInventoryBtn" class="reset-btn" style="margin-top:8px;">🔄 新規棚卸しを開始（進捗リセット）</button>
     </section>
 
     <section class="card" id="stockModeSelect">
@@ -567,6 +597,7 @@
         if (!shelvesLoaded) loadShelves();
       });
       $('importStockBtn').addEventListener('click', startImport);
+      $('resetInventoryBtn').addEventListener('click', showResetDialog);
       // モード切替ボタン
       document.querySelectorAll('.stock-mode-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -1085,6 +1116,69 @@
           nextBtn.disabled = false;
           nextBtn.textContent = '記録して次へ';
         });
+    }
+
+    // ─── リセット確認ダイアログ ───
+    function showResetDialog() {
+      var overlay = document.createElement('div');
+      overlay.className = 'reset-overlay';
+      var dialog = document.createElement('div');
+      dialog.className = 'reset-dialog';
+      dialog.innerHTML =
+        '<h3>⚠ 新規棚卸しを開始</h3>' +
+        '<p style="font-size:14px;color:var(--muted);margin:0 0 12px;">前回の棚卸し進捗をリセットして新しく開始します。</p>' +
+        '<ul class="reset-list">' +
+        '<li class="will-clear">🗑 進捗（最終棚卸日）を全品目クリア → 0%に戻る</li>' +
+        '<li class="will-clear">🗑 理論在庫を全品目クリア → CSV再取込が必要</li>' +
+        '<li class="will-clear">🗑 差異品シートをクリア</li>' +
+        '<li class="will-keep">✓ 棚卸し記録はそのまま残る（履歴）</li>' +
+        '<li class="will-keep">✓ 期限一覧・切迫品は最新データで自動更新される</li>' +
+        '<li class="will-keep">✓ 棚番変更の履歴は残る</li>' +
+        '</ul>' +
+        '<p style="font-size:13px;color:var(--danger);font-weight:600;margin:0 0 8px;">確認のため「リセット」と入力してください</p>' +
+        '<input type="text" class="reset-confirm-input" id="resetConfirmInput" placeholder="リセット" autocomplete="off">' +
+        '<div class="reset-dialog-btns">' +
+        '<button type="button" class="reset-cancel-btn" id="resetCancelBtn">キャンセル</button>' +
+        '<button type="button" class="reset-exec-btn" id="resetExecBtn" disabled>実行する</button>' +
+        '</div>';
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+
+      var confirmInput = document.getElementById('resetConfirmInput');
+      var execBtn = document.getElementById('resetExecBtn');
+      var cancelBtn = document.getElementById('resetCancelBtn');
+
+      confirmInput.addEventListener('input', function () {
+        execBtn.disabled = confirmInput.value.trim() !== 'リセット';
+      });
+      cancelBtn.addEventListener('click', function () {
+        document.body.removeChild(overlay);
+      });
+      overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) document.body.removeChild(overlay);
+      });
+      execBtn.addEventListener('click', function () {
+        execBtn.disabled = true;
+        execBtn.textContent = '処理中…';
+        cancelBtn.disabled = true;
+        callApi('resetInventory')
+          .then(function (res) {
+            // localStorage もクリア
+            completedShelves = {};
+            try { localStorage.removeItem(STORAGE_KEY + '_done'); } catch (e) {}
+            clearProgress();
+            document.body.removeChild(overlay);
+            toast('棚卸しをリセットしました（' + res.clearedItems + '品目の進捗クリア、差異' + res.diffCleared + '件削除）', 'ok');
+            shelvesLoaded = false;
+            loadShelves();
+          })
+          .catch(function (err) {
+            toast('リセットエラー: ' + err.message, 'error');
+            execBtn.disabled = false;
+            execBtn.textContent = '実行する';
+            cancelBtn.disabled = false;
+          });
+      });
     }
 
     // ─── CSV取込 ───
