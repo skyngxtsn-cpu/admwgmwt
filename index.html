@@ -1073,7 +1073,6 @@
         inventoryDate: inventoryDate,
       })
         .then(function (res) {
-          item.theoreticalStock = qty;
           shelfResults[currentItemIndex] = { diffStatus: res.diffStatus, expiryStatus: res.expiryStatus };
           const msg = res.message || '記録しました';
           toast(msg, res.diffStatus === 'diff' ? 'error' : 'ok');
