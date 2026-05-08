@@ -1106,23 +1106,13 @@
         inventoryDate: inventoryDate,
       };
       var shelfSelectEl = $('shelfChangeSelect');
-      var debugInfo = '';
-      if (!shelfSelectEl) {
-        debugInfo = 'select未検出';
-      } else if (shelfSelectEl.classList.contains('hidden')) {
-        debugInfo = 'select非表示';
-      } else {
+      if (shelfSelectEl && !shelfSelectEl.classList.contains('hidden')) {
         var selectedShelf = shelfSelectEl.value;
         var currentShelf = String(item.shelf || '').trim();
-        debugInfo = '選択=[' + selectedShelf + '] 現在=[' + currentShelf + ']';
         if (selectedShelf !== currentShelf) {
           payload.newShelf = selectedShelf;
-          debugInfo += ' → 送信';
-        } else {
-          debugInfo += ' → 同値で送信せず';
         }
       }
-      toast('🔍 ' + debugInfo, 'ok');
 
       callApi('updateStockItem', payload)
         .then(function (res) {
