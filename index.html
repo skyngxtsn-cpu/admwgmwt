@@ -294,6 +294,29 @@
     .shelf-progress-text {
       font-size: 11px; color: var(--muted); white-space: nowrap;
     }
+    /* 全体進捗 */
+    .total-progress {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .total-progress-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .total-progress-label {
+      font-size: 13px; font-weight: 600; color: var(--text);
+    }
+    .total-progress-count {
+      font-size: 13px; color: var(--muted);
+    }
+    .total-progress-count strong {
+      color: var(--ok); font-size: 16px; font-weight: 700;
+    }
+    .total-progress-bar-bg {
+      height: 10px; background: var(--border); border-radius: 5px; overflow: hidden;
+    }
+    .total-progress-bar-fill {
+      height: 100%; background: linear-gradient(90deg, var(--ok), #34d399);
+      border-radius: 5px; transition: width 0.4s;
+    }
     .diff-badge {
       display: inline-block; background: #fef2f2; color: var(--danger);
       font-size: 11px; font-weight: 700; padding: 2px 8px;
@@ -431,6 +454,18 @@
       </div>
     </section>
 
+    <section class="card" id="totalProgressSection">
+      <div class="total-progress">
+        <div class="total-progress-head">
+          <span class="total-progress-label">全体の進捗</span>
+          <span class="total-progress-count" id="totalProgressCount">- / -</span>
+        </div>
+        <div class="total-progress-bar-bg">
+          <div class="total-progress-bar-fill" id="totalProgressFill" style="width:0%"></div>
+        </div>
+      </div>
+    </section>
+
     <section class="card" id="shelfSelectSection">
       <div class="section-head">
         <span class="section-label">棚版を選択</span>
@@ -553,6 +588,7 @@
           shelfResults = saved.results || {};
           $('shelfSelectSection').classList.add('hidden');
           $('stockModeSelect').classList.add('hidden');
+          $('totalProgressSection').classList.add('hidden');
           $('shelfDetailSection').classList.remove('hidden');
           $('stockProgress').textContent = '読込中…';
           callApi('getStockByShelf', { shelf: saved.shelf })
@@ -590,6 +626,7 @@
       $('backToShelfList').addEventListener('click', () => {
         $('shelfSelectSection').classList.remove('hidden');
         $('stockModeSelect').classList.remove('hidden');
+        $('totalProgressSection').classList.remove('hidden');
         $('shelfDetailSection').classList.add('hidden');
         $('stockItemSearch').value = '';
         $('stockSearchResults').classList.add('hidden');
@@ -608,6 +645,7 @@
             loadDiffItems();
           } else {
             $('shelfSelectSection').classList.remove('hidden');
+            $('totalProgressSection').classList.remove('hidden');
             $('shelfDetailSection').classList.add('hidden');
             renderShelfList();
           }
@@ -677,7 +715,20 @@
       return s.replace(/-/g, '').replace(/0+(\d)/g, '$1').toLowerCase();
     }
 
+    function renderTotalProgress() {
+      var totalCount = 0;
+      var totalDone = 0;
+      shelves.forEach(function (s) {
+        totalCount += s.count || 0;
+        totalDone += s.done || 0;
+      });
+      var pct = totalCount > 0 ? Math.round((totalDone / totalCount) * 100) : 0;
+      $('totalProgressCount').innerHTML = '<strong>' + totalDone + '</strong> / ' + totalCount + ' 品目 (' + pct + '%)';
+      $('totalProgressFill').style.width = pct + '%';
+    }
+
     function renderShelfList() {
+      renderTotalProgress();
       const filter = $('shelfSearch').value.trim().toLowerCase();
       const filterKey = normalizeShelfKey(filter);
       const list = $('shelfList');
@@ -739,6 +790,7 @@
       shelfResults = {};
       $('shelfSelectSection').classList.add('hidden');
       $('stockModeSelect').classList.add('hidden');
+      $('totalProgressSection').classList.add('hidden');
       $('shelfDetailSection').classList.remove('hidden');
       $('stockProgress').textContent = '読込中…';
       $('stockCardContainer').innerHTML = '';
@@ -759,6 +811,7 @@
 
     function loadDiffItems() {
       $('shelfSelectSection').classList.add('hidden');
+      $('totalProgressSection').classList.add('hidden');
       $('shelfDetailSection').classList.remove('hidden');
       $('stockModeSelect').classList.remove('hidden');
       $('stockProgress').textContent = '読込中…';
