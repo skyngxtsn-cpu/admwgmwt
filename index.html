@@ -33,7 +33,31 @@
       position: sticky; top: 0; z-index: 10;
       box-shadow: 0 2px 8px rgba(30,58,138,0.3);
     }
-    .app-header h1 { margin: 0 0 8px 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+    .app-header h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+    .app-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .settings-btn {
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; width: 32px; height: 32px; border-radius: 50%;
+      font-size: 16px; cursor: pointer; padding: 0;
+    }
+    .settings-btn:active { background: rgba(255,255,255,0.3); }
+    .ss-badge {
+      display: block; width: 100%; text-align: left;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; padding: 6px 10px; border-radius: 6px;
+      font-size: 12px; cursor: pointer; margin-bottom: 8px;
+    }
+    .ss-badge:active { background: rgba(255,255,255,0.2); }
+    .ss-badge span { font-weight: 600; }
+    .ss-recent-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px;
+      margin-bottom: 4px; cursor: pointer; background: white; font-size: 13px;
+    }
+    .ss-recent-item:active { background: var(--bg); }
+    .ss-recent-current {
+      border-color: var(--ok); background: #ecfdf5;
+    }
     .inventory-date { display: flex; align-items: center; gap: 8px; font-size: 14px; }
     .inventory-date label { opacity: 0.85; font-size: 13px; }
     .inventory-date input {
@@ -357,6 +381,7 @@
       max-width: 360px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
     .reset-dialog h3 { margin: 0 0 16px; font-size: 18px; color: var(--danger); }
+    #settingsDialog h3 { color: var(--text); }
     .reset-dialog .reset-list { margin: 0 0 16px; padding: 0; list-style: none; font-size: 14px; }
     .reset-dialog .reset-list li { padding: 6px 0; border-bottom: 1px solid var(--border); }
     .reset-dialog .reset-list .will-clear { color: var(--danger); font-weight: 600; }
@@ -379,12 +404,38 @@
   </div>
 
   <header class="app-header">
-    <h1>薬局棚卸し</h1>
+    <div class="app-title-row">
+      <h1>薬局棚卸し</h1>
+      <button type="button" id="settingsBtn" class="settings-btn" title="設定">⚙</button>
+    </div>
+    <button type="button" id="ssBadge" class="ss-badge" title="接続中のスプレッドシート">📊 <span id="ssBadgeName">読込中…</span></button>
     <div class="inventory-date">
       <label for="inventoryDate">棚卸し日</label>
       <input type="date" id="inventoryDate">
     </div>
   </header>
+
+  <!-- 設定モーダル -->
+  <div id="settingsOverlay" class="reset-overlay hidden"></div>
+  <div id="settingsDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;">
+    <h3>⚙ 設定 — スプレッドシート切替</h3>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 12px;">この端末で使うスプレッドシートを変更します。<br>他の端末や店舗には影響しません。</p>
+    <div style="background:var(--bg);padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px;">
+      <div style="color:var(--muted);font-size:11px;">現在の接続先</div>
+      <div id="settingsCurrentName" style="font-weight:600;margin-top:2px;">読込中…</div>
+    </div>
+
+    <label style="font-size:12px;color:var(--muted);">新しいスプレッドシートURLを貼り付け</label>
+    <input type="text" id="settingsUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;margin-top:4px;margin-bottom:8px;font-size:13px;">
+    <button type="button" id="settingsApplyBtn" class="primary-btn" style="width:100%;">📋 このスプレッドシートに切替</button>
+
+    <div id="settingsRecentSection" style="margin-top:16px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">最近使ったスプレッドシート</div>
+      <div id="settingsRecentList"></div>
+    </div>
+
+    <button type="button" id="settingsCloseBtn" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--border);background:white;border-radius:4px;">閉じる</button>
+  </div>
 
   <nav class="mode-tabs">
     <button type="button" id="modeSearchBtn">個別記録</button>
@@ -498,6 +549,8 @@
     const MIN_QUERY_LEN = 2;
     const MAX_RESULTS = 20;
     const STORAGE_KEY = 'pharmacy_stock_progress';
+    const SS_KEY = 'pharmacy_target_spreadsheet';        // {id, name}
+    const SS_RECENT_KEY = 'pharmacy_recent_spreadsheets'; // [{id, name}, ...]
 
     const $ = (id) => document.getElementById(id);
     let selected = null;
@@ -551,9 +604,15 @@
 
     // ─── API ───
     async function callApi(action, payload) {
+      // 端末ごとのスプレッドシートID設定があればpayloadに自動付与
+      const fullPayload = Object.assign({}, payload || {});
+      const target = getTargetSpreadsheet();
+      if (target && target.id) {
+        fullPayload.spreadsheetId = target.id;
+      }
       const res = await fetch(API_URL, {
         method: 'POST',
-        body: JSON.stringify({ action, payload: payload || {} }),
+        body: JSON.stringify({ action, payload: fullPayload }),
         redirect: 'follow',
       });
       const text = await res.text();
@@ -562,6 +621,46 @@
       catch (e) { throw new Error('APIレスポンス解析失敗: ' + text.substring(0, 100)); }
       if (data.error) throw new Error(data.error);
       return data.result;
+    }
+
+    // ─── スプレッドシート設定（localStorage） ───
+    function getTargetSpreadsheet() {
+      try {
+        const raw = localStorage.getItem(SS_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    }
+    function setTargetSpreadsheet(info) {
+      try {
+        if (info) {
+          localStorage.setItem(SS_KEY, JSON.stringify({ id: info.id, name: info.name }));
+          // 最近使ったシート（先頭追加、重複除去、最大5件）
+          var recent = getRecentSpreadsheets();
+          recent = recent.filter(function (r) { return r.id !== info.id; });
+          recent.unshift({ id: info.id, name: info.name });
+          recent = recent.slice(0, 5);
+          localStorage.setItem(SS_RECENT_KEY, JSON.stringify(recent));
+        } else {
+          localStorage.removeItem(SS_KEY);
+        }
+      } catch (e) {}
+    }
+    function getRecentSpreadsheets() {
+      try {
+        const raw = localStorage.getItem(SS_RECENT_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) { return []; }
+    }
+    // URLからスプレッドシートIDを抽出
+    function extractSpreadsheetId(url) {
+      if (!url) return '';
+      // /spreadsheets/d/XXXXXX/edit
+      const m1 = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      if (m1) return m1[1];
+      // IDのみ貼られた場合
+      const m2 = url.match(/^[a-zA-Z0-9-_]{20,}$/);
+      if (m2) return m2[0];
+      return '';
     }
 
     // ─── 初期化 ───
@@ -573,10 +672,141 @@
       bindRecent();
       bindModeTabs();
       bindStockMode();
+      bindSettings();
       loadRecent();
       loadAllMedicines();
       loadShelves();
+      refreshSpreadsheetBadge();
       checkResume();
+    }
+
+    // ─── ピボット再生成スケジューラ（バックグラウンド実行） ───
+    let pivotDirty = false;       // 期限を入力した時にtrueになる
+    let pivotInFlight = false;    // 現在実行中
+    function markPivotDirty() { pivotDirty = true; }
+    function schedulePivotRebuild() {
+      if (!pivotDirty || pivotInFlight) return;
+      pivotInFlight = true;
+      pivotDirty = false;
+      callApi('rebuildPivot')
+        .catch(function (err) {
+          console.warn('pivot rebuild failed:', err);
+          pivotDirty = true;  // 失敗したら再試行できるよう戻す
+        })
+        .finally(function () {
+          pivotInFlight = false;
+        });
+    }
+    // アプリを閉じる/バックグラウンド化する時にも保険で実行
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') schedulePivotRebuild();
+    });
+    window.addEventListener('pagehide', schedulePivotRebuild);
+
+    // ─── 設定モーダル ───
+    function bindSettings() {
+      $('settingsBtn').addEventListener('click', openSettings);
+      $('ssBadge').addEventListener('click', openSettings);
+      $('settingsCloseBtn').addEventListener('click', closeSettings);
+      $('settingsOverlay').addEventListener('click', closeSettings);
+      $('settingsApplyBtn').addEventListener('click', applySpreadsheetChange);
+    }
+    function openSettings() {
+      $('settingsOverlay').classList.remove('hidden');
+      $('settingsDialog').classList.remove('hidden');
+      $('settingsUrlInput').value = '';
+      renderSettingsRecent();
+      // 現在のシート名を更新
+      var current = getTargetSpreadsheet();
+      $('settingsCurrentName').textContent = current ? current.name : '（GAS本体に紐付いた親シート）';
+    }
+    function closeSettings() {
+      $('settingsOverlay').classList.add('hidden');
+      $('settingsDialog').classList.add('hidden');
+    }
+    function renderSettingsRecent() {
+      var recent = getRecentSpreadsheets();
+      var current = getTargetSpreadsheet();
+      var listEl = $('settingsRecentList');
+      if (recent.length === 0) {
+        $('settingsRecentSection').style.display = 'none';
+        return;
+      }
+      $('settingsRecentSection').style.display = '';
+      listEl.innerHTML = '';
+      recent.forEach(function (r) {
+        var item = document.createElement('div');
+        item.className = 'ss-recent-item';
+        if (current && current.id === r.id) item.classList.add('ss-recent-current');
+        item.innerHTML = '<span>' + r.name + '</span>' +
+          (current && current.id === r.id ? '<span style="font-size:11px;color:var(--ok);">使用中</span>' : '<span style="font-size:11px;color:var(--muted);">タップで切替</span>');
+        item.addEventListener('click', function () {
+          if (current && current.id === r.id) return;
+          switchToSpreadsheet(r.id, r.name);
+        });
+        listEl.appendChild(item);
+      });
+    }
+    function applySpreadsheetChange() {
+      var url = $('settingsUrlInput').value.trim();
+      var id = extractSpreadsheetId(url);
+      if (!id) {
+        toast('URLが不正です。スプレッドシートURLを貼り付けてください', 'error');
+        return;
+      }
+      var btn = $('settingsApplyBtn');
+      btn.disabled = true; btn.textContent = '確認中…';
+      // 一時的にidを使ってバリデーション → 成功したらlocalStorage保存
+      callApiRaw('validateSpreadsheet', { spreadsheetId: id })
+        .then(function (res) {
+          switchToSpreadsheet(res.id, res.name);
+        })
+        .catch(function (err) {
+          toast('切替失敗: ' + err.message, 'error');
+        })
+        .finally(function () {
+          btn.disabled = false; btn.textContent = '📋 このスプレッドシートに切替';
+        });
+    }
+    function switchToSpreadsheet(id, name) {
+      setTargetSpreadsheet({ id: id, name: name });
+      toast('✅ スプレッドシートを切替: ' + name, 'ok');
+      refreshSpreadsheetBadge();
+      closeSettings();
+      // 全データをリロード
+      shelvesLoaded = false;
+      medicinesLoaded = false;
+      clearProgress();
+      loadShelves();
+      loadAllMedicines();
+    }
+    function refreshSpreadsheetBadge() {
+      var current = getTargetSpreadsheet();
+      if (current && current.name) {
+        $('ssBadgeName').textContent = current.name;
+      } else {
+        // localStorage に何もなければGAS側に問い合わせ
+        callApi('getCurrentSpreadsheet').then(function (res) {
+          $('ssBadgeName').textContent = res.name;
+        }).catch(function () {
+          $('ssBadgeName').textContent = '（未設定）';
+        });
+      }
+    }
+    // 通常の callApi は localStorage の spreadsheetId を自動付与するが、
+    // validateSpreadsheet は別IDで試したいので生callを使う
+    async function callApiRaw(action, payload) {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action, payload: payload || {} }),
+        redirect: 'follow',
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch (e) { throw new Error('APIレスポンス解析失敗: ' + text.substring(0, 100)); }
+      if (data.error) throw new Error(data.error);
+      return data.result;
     }
 
     function checkResume() {
@@ -630,6 +860,8 @@
         $('shelfDetailSection').classList.add('hidden');
         $('stockItemSearch').value = '';
         $('stockSearchResults').classList.add('hidden');
+        // 棚版を抜けるタイミングでピボット再生成をバックグラウンド実行
+        schedulePivotRebuild();
         // 差異品モードから戻った場合、棚一覧を再読み込み
         if (!shelvesLoaded) loadShelves();
       });
@@ -845,10 +1077,13 @@
         clearProgress();
         if (stockCountMode === 'all') markShelfDone(currentShelfName);
         showCompleteSummary(container);
-        // バックグラウンドで期限一覧ピボットを再構築
+        // バックグラウンドで期限一覧ピボットを再構築（重複防止のためdirtyフラグもクリア）
+        pivotDirty = false;
+        pivotInFlight = true;
         callApi('rebuildPivot')
           .then(function () { toast('期限一覧を更新しました', 'ok'); })
-          .catch(function (err) { toast('期限一覧の更新に失敗: ' + err.message, 'error'); });
+          .catch(function (err) { toast('期限一覧の更新に失敗: ' + err.message, 'error'); })
+          .finally(function () { pivotInFlight = false; });
         return;
       }
 
@@ -1174,6 +1409,10 @@
           if (res.shelfChanged && payload.newShelf !== undefined) {
             item.shelf = payload.newShelf;
             toast('棚番変更: → ' + (payload.newShelf || 'なし'), 'ok');
+          }
+          // 期限が記録された場合、ピボット再生成を予約
+          if (payload.expiries && payload.expiries.length > 0) {
+            markPivotDirty();
           }
           const msg = res.message || '記録しました';
           toast(msg, res.diffStatus === 'diff' ? 'error' : 'ok');
