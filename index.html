@@ -1150,10 +1150,8 @@
         return String.fromCharCode(ch.charCodeAt(0) + 0x60);
       });
       const hits = [];
-      let scannedFirstSample = null;
       for (let i = 0; i < MEDICINES.length; i++) {
         const m = MEDICINES[i];
-        if (i === 0) scannedFirstSample = m;
         if (
           (m.yj || '').toUpperCase().indexOf(qUpper) !== -1 ||
           (m.name || '').indexOf(query) !== -1 ||
@@ -1163,14 +1161,7 @@
           if (hits.length >= MAX_RESULTS) break;
         }
       }
-      // デバッグ表示：ヒント欄に状況を出す
-      var sampleStr = scannedFirstSample ? ('サンプル1件目: ' + JSON.stringify(scannedFirstSample).substring(0, 120)) : '';
-      $('checkSearchHint').textContent = '「' + query + '」で ' + hits.length + '件ヒット / 全' + MEDICINES.length + '件検索';
       renderCheckSuggestions(hits);
-      if (hits.length === 0 && scannedFirstSample) {
-        // 何もヒットしない場合、サンプルデータをUIに出す（原因特定用）
-        suggestList.innerHTML = '<li style="padding:8px;color:var(--muted);font-size:11px;">DEBUG ' + sampleStr + '</li>';
-      }
     }
 
     function renderCheckSuggestions(hits) {
@@ -1182,9 +1173,14 @@
       }
       hits.forEach(function (m) {
         const li = document.createElement('li');
-        li.innerHTML =
-          '<div class="name">' + escapeHtml(m.name) + '</div>' +
-          '<div class="meta">' + escapeHtml(m.spec || '') + ' ' + escapeHtml(m.unit || '') + ' / ' + escapeHtml(m.maker || '') + '</div>';
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'name';
+        nameDiv.textContent = m.name || '';
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'meta';
+        metaDiv.textContent = [m.spec, m.unit, m.maker].filter(Boolean).join(' / ');
+        li.appendChild(nameDiv);
+        li.appendChild(metaDiv);
         li.addEventListener('click', function () {
           selectCheckMedicine(m);
         });
