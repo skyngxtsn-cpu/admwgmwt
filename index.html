@@ -550,7 +550,6 @@
 
   <nav class="mode-tabs">
     <button type="button" id="modeSearchBtn">個別記録</button>
-    <button type="button" id="modeCheckBtn">期限チェック</button>
     <button type="button" id="modeStockBtn" class="active">棚卸しモード</button>
   </nav>
 
@@ -570,12 +569,13 @@
         </div>
         <button type="button" id="clearSelected" class="link-btn">変更</button>
       </div>
-      <label for="expiryInput" class="section-label">有効期限</label>
-      <input type="month" id="expiryInput">
-      <div class="grid-2">
+      <label class="section-label">有効期限（複数入力可）</label>
+      <div id="expiryContainerInd"></div>
+      <div class="hint" style="margin-top:4px;">※期限のみ入れる場合は期限だけの入力でOK（数量は省略可）</div>
+      <div class="grid-2" style="margin-top:12px;">
         <div>
-          <label for="quantityInput" class="section-label">数量</label>
-          <input type="number" id="quantityInput" min="0" step="1" inputmode="numeric" value="0">
+          <label for="quantityInput" class="section-label">数量（省略可）</label>
+          <input type="number" id="quantityInput" min="0" step="1" inputmode="numeric" placeholder="空欄可">
         </div>
         <div>
           <label for="locationInput" class="section-label">棚位置</label>
@@ -593,35 +593,6 @@
         <button type="button" id="reloadRecent" class="link-btn">更新</button>
       </div>
       <ul id="recentList" class="recent-list"></ul>
-    </section>
-  </main>
-
-  <!-- 期限チェックモード -->
-  <main id="checkMode" class="hidden">
-    <section class="card">
-      <span class="section-label">📅 期限チェック（日常用）</span>
-      <div class="hint" style="margin-bottom:10px;">棚卸し後に入荷した薬の期限を、切迫かどうか判定して記録します。<br>数量入力なし、期限だけの簡易記録です。</div>
-
-      <label>医薬品を検索</label>
-      <input type="search" id="checkSearchInput" placeholder="薬品名・カナ・JANコード…" autocomplete="off">
-      <div id="checkSearchHint" class="hint" style="margin-top:4px;">2文字以上で検索</div>
-      <ul id="checkSuggestList" class="suggest-list"></ul>
-
-      <div id="checkSelectedPanel" class="hidden" style="margin-top:12px;padding:12px;background:var(--bg);border-radius:10px;">
-        <div style="font-size:12px;color:var(--muted);">選択中の医薬品</div>
-        <div id="checkSelectedName" style="font-size:16px;font-weight:700;margin-top:2px;"></div>
-        <div id="checkSelectedMeta" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
-
-        <div style="margin-top:14px;">
-          <label style="font-size:13px;color:var(--muted);font-weight:600;">有効期限（複数可）</label>
-          <div id="checkExpiryContainer" style="margin-top:4px;"></div>
-        </div>
-
-        <div class="grid-2" style="margin-top:14px;">
-          <button type="button" id="checkClearBtn" class="secondary-btn">クリア</button>
-          <button type="button" id="checkRecordBtn" class="primary-btn" style="margin-top:0;">📝 記録</button>
-        </div>
-      </div>
     </section>
   </main>
 
@@ -857,7 +828,6 @@
       bindForm();
       bindRecent();
       bindModeTabs();
-      bindCheckMode();
       bindStockMode();
       bindSettings();
       bindCycle();
@@ -1096,170 +1066,19 @@
     // ─── モード切替 ───
     function bindModeTabs() {
       $('modeSearchBtn').addEventListener('click', () => showMode('search'));
-      $('modeCheckBtn').addEventListener('click', () => showMode('check'));
       $('modeStockBtn').addEventListener('click', () => showMode('stock'));
     }
     function showMode(mode) {
       $('searchMode').classList.toggle('hidden', mode !== 'search');
-      $('checkMode').classList.toggle('hidden', mode !== 'check');
       $('stockMode').classList.toggle('hidden', mode !== 'stock');
       $('modeSearchBtn').classList.toggle('active', mode === 'search');
-      $('modeCheckBtn').classList.toggle('active', mode === 'check');
       $('modeStockBtn').classList.toggle('active', mode === 'stock');
       if (mode === 'stock' && !shelvesLoaded) loadShelves();
-      // 検索/期限チェックモードで初めて医薬品マスタを読む
-      if ((mode === 'search' || mode === 'check') && !medicinesLoaded) loadAllMedicines();
-      // 期限チェックタブに切替時、既にロード済みなら件数を表示
-      if (mode === 'check' && medicinesLoaded) {
-        $('checkSearchHint').textContent = MIN_QUERY_LEN + '文字以上で検索（' + MEDICINES.length + '件）';
-      }
+      // 個別記録モードで初めて医薬品マスタを読む
+      if (mode === 'search' && !medicinesLoaded) loadAllMedicines();
     }
 
     // ─── 棚卸しモード ───
-    // ─── 期限チェックモード（日常用） ───
-    let checkSelectedMed = null;
-
-    function bindCheckMode() {
-      const searchInput = $('checkSearchInput');
-      const suggestList = $('checkSuggestList');
-      const container = $('checkExpiryContainer');
-      let debounceTimer = null;
-
-      searchInput.addEventListener('input', function () {
-        clearTimeout(debounceTimer);
-        const q = searchInput.value.trim();
-        if (q.length < 2) {
-          suggestList.innerHTML = '';
-          return;
-        }
-        debounceTimer = setTimeout(function () { runCheckSearch(q); }, SEARCH_DEBOUNCE_MS);
-      });
-
-      $('checkClearBtn').addEventListener('click', resetCheckPanel);
-      $('checkRecordBtn').addEventListener('click', recordCheckExpiry);
-    }
-
-    function runCheckSearch(query) {
-      const suggestList = $('checkSuggestList');
-      if (!medicinesLoaded) {
-        suggestList.innerHTML = '<li style="padding:8px;color:var(--muted);">医薬品マスタ読み込み中…</li>';
-        return;
-      }
-      const qUpper = query.toUpperCase();
-      const qKana = query.replace(/[ぁ-ゖ]/g, function (ch) {
-        return String.fromCharCode(ch.charCodeAt(0) + 0x60);
-      });
-      const hits = [];
-      for (let i = 0; i < MEDICINES.length; i++) {
-        const m = MEDICINES[i];
-        if (
-          (m.yj || '').toUpperCase().indexOf(qUpper) !== -1 ||
-          (m.name || '').indexOf(query) !== -1 ||
-          (m.kana || '').indexOf(qKana) !== -1
-        ) {
-          hits.push(m);
-          if (hits.length >= MAX_RESULTS) break;
-        }
-      }
-      renderCheckSuggestions(hits);
-    }
-
-    function renderCheckSuggestions(hits) {
-      const suggestList = $('checkSuggestList');
-      suggestList.innerHTML = '';
-      if (hits.length === 0) {
-        suggestList.innerHTML = '<li style="padding:8px;color:var(--muted);">該当なし</li>';
-        return;
-      }
-      hits.forEach(function (m) {
-        const li = document.createElement('li');
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'name';
-        nameDiv.textContent = m.name || '';
-        const metaDiv = document.createElement('div');
-        metaDiv.className = 'meta';
-        metaDiv.textContent = [m.spec, m.unit, m.maker].filter(Boolean).join(' / ');
-        li.appendChild(nameDiv);
-        li.appendChild(metaDiv);
-        li.addEventListener('click', function () {
-          selectCheckMedicine(m);
-        });
-        suggestList.appendChild(li);
-      });
-    }
-
-    function selectCheckMedicine(m) {
-      checkSelectedMed = m;
-      $('checkSelectedName').textContent = m.name;
-      $('checkSelectedMeta').textContent = [m.spec, m.unit, m.maker].filter(Boolean).join(' / ');
-      $('checkSelectedPanel').classList.remove('hidden');
-      $('checkSuggestList').innerHTML = '';
-      $('checkSearchInput').value = '';
-      // 期限入力欄を初期化
-      const container = $('checkExpiryContainer');
-      container.innerHTML = '';
-      addExpiryField(container);
-    }
-
-    function resetCheckPanel() {
-      checkSelectedMed = null;
-      $('checkSelectedPanel').classList.add('hidden');
-      $('checkExpiryContainer').innerHTML = '';
-      $('checkSearchInput').value = '';
-      $('checkSuggestList').innerHTML = '';
-    }
-
-    function recordCheckExpiry() {
-      if (!checkSelectedMed) { toast('医薬品を選択してください', 'error'); return; }
-      const container = $('checkExpiryContainer');
-      const expiries = getExpiries(container);
-      if (expiries && expiries.error) { toast(expiries.error, 'error'); return; }
-      if (!expiries || expiries.length === 0) { toast('期限を1つ以上入力してください', 'error'); return; }
-
-      const inventoryDate = $('inventoryDate').value;
-      const btn = $('checkRecordBtn');
-      btn.disabled = true; btn.textContent = '記録中…';
-
-      // 各期限ごとに Inventory_add API を呼び出す（数量0で記録）
-      const m = checkSelectedMed;
-      const promises = expiries.map(function (exp) {
-        return callApi('addInventoryRecord', {
-          yjCode: m.yj || '',
-          name: m.name,
-          spec: m.spec || '',
-          expiry: exp,
-          quantity: 0,
-          location: '',
-          memo: '期限チェック',
-          inventoryDate: inventoryDate,
-        });
-      });
-
-      Promise.all(promises)
-        .then(function (results) {
-          // 結果を集計
-          var impending = 0, expired = 0, ok = 0;
-          results.forEach(function (r) {
-            if (r.status === 'impending') impending++;
-            else if (r.status === 'expired') expired++;
-            else if (r.status === 'ok') ok++;
-          });
-          var msg = '記録: ' + results.length + '件';
-          if (expired > 0) msg += ' / 🛑 期限切れ ' + expired + '件';
-          if (impending > 0) msg += ' / ⚠️ 切迫 ' + impending + '件';
-          if (ok > 0) msg += ' / ✅ 余裕あり ' + ok + '件';
-          toast(msg, expired > 0 || impending > 0 ? 'error' : 'ok');
-          resetCheckPanel();
-          loadRecent();  // 直近の入力を更新
-        })
-        .catch(function (err) {
-          toast('記録エラー: ' + err.message, 'error');
-        })
-        .finally(function () {
-          btn.disabled = false; btn.textContent = '📝 記録';
-        });
-    }
-
     function bindStockMode() {
       $('reloadShelvesBtn').addEventListener('click', () => { shelvesLoaded = false; loadShelves(); });
       $('shelfSearch').addEventListener('input', renderShelfList);
@@ -2119,19 +1938,14 @@
     // ─── 個別記録モード ───
     function loadAllMedicines() {
       $('searchHint').textContent = '医薬品マスタを読み込み中…';
-      if ($('checkSearchHint')) $('checkSearchHint').textContent = '医薬品マスタを読み込み中…';
       callApi('getAllMedicines')
         .then((rows) => {
           MEDICINES = rows || [];
           medicinesLoaded = true;
-          const doneMsg = MIN_QUERY_LEN + '文字以上で検索（' + MEDICINES.length + '件）';
-          $('searchHint').textContent = doneMsg;
-          if ($('checkSearchHint')) $('checkSearchHint').textContent = doneMsg;
+          $('searchHint').textContent = MIN_QUERY_LEN + '文字以上で検索（' + MEDICINES.length + '件）';
         })
         .catch((err) => {
-          const errMsg = 'マスタ読み込みエラー: ' + err.message;
-          $('searchHint').textContent = errMsg;
-          if ($('checkSearchHint')) $('checkSearchHint').textContent = errMsg;
+          $('searchHint').textContent = 'マスタ読み込みエラー: ' + err.message;
         });
     }
 
@@ -2233,52 +2047,88 @@
       $('suggestList').hidden = true;
       $('searchInput').value = '';
       $('searchHint').textContent = MIN_QUERY_LEN + '文字以上で検索（' + MEDICINES.length + '件）';
-      setDefaultExpiry();
-      $('expiryInput').focus();
-    }
-
-    function setDefaultExpiry() {
-      if ($('expiryInput').value) return;
-      const d = new Date();
-      d.setMonth(d.getMonth() + 18);
-      const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-      $('expiryInput').value = ym;
+      // 期限入力欄を初期化（1つだけ用意、入力したら自動で追加される）
+      const c = $('expiryContainerInd');
+      c.innerHTML = '';
+      addExpiryField(c);
+      setTimeout(function () {
+        const firstInput = c.querySelector('input');
+        if (firstInput) firstInput.focus();
+      }, 50);
     }
 
     function clearSelection() {
       selected = null;
       $('selectedCard').classList.add('hidden');
-      $('expiryInput').value = '';
-      $('quantityInput').value = '0';
+      $('expiryContainerInd').innerHTML = '';
+      $('quantityInput').value = '';
       $('locationInput').value = '';
       $('memoInput').value = '';
+    }
+
+    // 個別記録カード表示時、期限入力欄を1つ用意（棚卸しモードと同じ addExpiryField 流用）
+    function initIndividualExpiryFields() {
+      const c = $('expiryContainerInd');
+      c.innerHTML = '';
+      addExpiryField(c);
     }
 
     function bindForm() {
       $('clearSelected').addEventListener('click', clearSelection);
       $('submitBtn').addEventListener('click', () => {
         if (!selected) { toast('医薬品を選択してください', 'error'); return; }
-        const expiry = $('expiryInput').value;
-        if (!/^\d{4}-\d{2}$/.test(expiry)) { toast('有効期限を入力してください', 'error'); return; }
-        const payload = {
+        const expiries = getExpiries($('expiryContainerInd'));
+        if (expiries && expiries.error) { toast(expiries.error, 'error'); return; }
+        const qtyRaw = $('quantityInput').value;
+        const quantity = qtyRaw === '' ? 0 : Number(qtyRaw);
+        // 期限も数量も空 → 記録するものがない
+        if ((!expiries || expiries.length === 0) && !qtyRaw) {
+          toast('期限または数量を入力してください', 'error');
+          return;
+        }
+        // 期限なし数量ありは1件、期限ありなら各期限を1件ずつ記録
+        const expiryList = (expiries && expiries.length > 0) ? expiries : [''];
+        const basePayload = {
           inventoryDate: $('inventoryDate').value,
           yjCode: selected.yj,
           name: selected.name,
           spec: selected.spec,
-          expiry: expiry,
-          quantity: Number($('quantityInput').value || 0),
+          quantity: quantity,
           location: $('locationInput').value,
           memo: $('memoInput').value,
         };
         $('submitBtn').disabled = true;
-        callApi('addInventoryRecord', payload)
-          .then((res) => {
-            toast(res.message, res.status);
+        $('submitBtn').textContent = '記録中…';
+        const promises = expiryList.map(function (exp) {
+          return callApi('addInventoryRecord', Object.assign({}, basePayload, { expiry: exp }));
+        });
+        Promise.all(promises)
+          .then((results) => {
+            // 集計
+            var impending = 0, expired = 0, ok = 0;
+            results.forEach(function (r) {
+              if (r.status === 'impending') impending++;
+              else if (r.status === 'expired') expired++;
+              else if (r.status === 'ok') ok++;
+            });
+            var msg = '✅ ' + results.length + '件記録';
+            if (expired > 0) msg += ' / 🛑 期限切れ ' + expired;
+            if (impending > 0) msg += ' / ⚠️ 切迫 ' + impending;
+            if (ok > 0) msg += ' / 余裕あり ' + ok;
+            toast(msg, (expired > 0 || impending > 0) ? 'error' : 'ok');
             clearSelection();
             loadRecent();
+            // 個別記録後は自動で切迫品シートを更新（記録件数が少ないので許容範囲）
+            const hasExpiry = expiryList.some(function (e) { return e; });
+            if (hasExpiry) {
+              callApi('rebuildPivot').catch(function () {});
+            }
           })
           .catch((err) => toast('エラー: ' + err.message, 'error'))
-          .finally(() => { $('submitBtn').disabled = false; });
+          .finally(() => {
+            $('submitBtn').disabled = false;
+            $('submitBtn').textContent = '記録する';
+          });
       });
 
       $('rebuildPivotBtn').addEventListener('click', () => {
