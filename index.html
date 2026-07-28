@@ -459,6 +459,14 @@
       <div id="settingsRecentList"></div>
     </div>
 
+    <!-- アプリ更新セクション -->
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">アプリのバージョン</div>
+      <div id="settingsAppVersion" style="font-size:11px;color:var(--muted);margin-bottom:8px;">v2026.07.28</div>
+      <button type="button" id="settingsReloadBtn" style="width:100%;padding:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);border-radius:6px;font-weight:600;">🔄 アプリを最新版に更新</button>
+      <div class="hint" style="margin-top:4px;">キャッシュをクリアして最新版を読み込み直します</div>
+    </div>
+
     <button type="button" id="settingsCloseBtn" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--border);background:white;border-radius:4px;">閉じる</button>
   </div>
 
@@ -518,6 +526,8 @@
     <section class="card">
       <button type="button" id="importStockBtn" class="import-btn">📥 VANの在庫データを取込</button>
       <div class="hint">VANから出した F メニューCSV をそのまま取込（Shift_JIS対応）</div>
+      <button type="button" id="importMasterBtn" class="import-btn" style="margin-top:8px;">📚 医薬品マスタを更新</button>
+      <div class="hint">整形済み medicine_master.csv (UTF-8) を取込 → キャッシュも自動クリア</div>
       <button type="button" id="resetInventoryBtn" class="reset-btn" style="margin-top:8px;">🔄 新規棚卸しを開始（進捗リセット）</button>
     </section>
 
@@ -734,9 +744,14 @@
       $('settingsBtn').addEventListener('click', openSettings);
       $('ssBadge').addEventListener('click', openSettings);
       $('settingsCloseBtn').addEventListener('click', closeSettings);
+      $('settingsReloadBtn').addEventListener('click', reloadAppLatest);
       $('settingsOverlay').addEventListener('click', closeSettings);
       $('settingsApplyBtn').addEventListener('click', applySpreadsheetChange);
     }
+    // アプリのビルド識別子（HTMLがロードされた時刻。同じHTMLでも初回ロード日時が入る）
+    // 更新前後で値が変わる = ちゃんと最新版になった証拠
+    var APP_BUILD = new Date().toISOString().substring(0, 19).replace('T', ' ');
+
     function openSettings() {
       $('settingsOverlay').classList.remove('hidden');
       $('settingsDialog').classList.remove('hidden');
@@ -745,10 +760,26 @@
       // 現在のシート名を更新
       var current = getTargetSpreadsheet();
       $('settingsCurrentName').textContent = current ? current.name : '（GAS本体に紐付いた親シート）';
+      // アプリのビルド時刻を表示
+      $('settingsAppVersion').textContent = 'ロード日時: ' + APP_BUILD;
     }
     function closeSettings() {
       $('settingsOverlay').classList.add('hidden');
       $('settingsDialog').classList.add('hidden');
+    }
+    function reloadAppLatest() {
+      // キャッシュバスターでURLを変えて強制リロード
+      var url = window.location.pathname + '?v=' + Date.now();
+      // Service Worker が入っていれば unregister（今回未使用だが将来のため）
+      if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) { r.unregister(); });
+        }).finally(function () {
+          window.location.replace(url);
+        });
+      } else {
+        window.location.replace(url);
+      }
     }
     function renderSettingsRecent() {
       var recent = getRecentSpreadsheets();
@@ -892,6 +923,7 @@
         if (!shelvesLoaded) loadShelves();
       });
       $('importStockBtn').addEventListener('click', startImport);
+      $('importMasterBtn').addEventListener('click', startMasterImport);
       $('resetInventoryBtn').addEventListener('click', showResetDialog);
       // モード切替ボタン
       document.querySelectorAll('.stock-mode-btn').forEach(function (btn) {
@@ -1298,19 +1330,18 @@
         vanRow.appendChild(vanDiffBtn);
         expSection.appendChild(vanRow);
 
-        // 「違う」入力エリア（初期は非表示）
+        // 「違う」入力エリア（初期は非表示、複数期限入力可能）
         const diffInputWrap = document.createElement('div');
         diffInputWrap.className = 'van-expiry-input-wrap hidden';
         diffInputWrap.id = 'vanExpiryInputWrap';
         const diffInputLabel = document.createElement('div');
         diffInputLabel.className = 'stock-expiry-sublabel';
-        diffInputLabel.textContent = '正しい期限（YYYY-MM）';
+        diffInputLabel.textContent = '正しい期限（複数入力可）';
         diffInputWrap.appendChild(diffInputLabel);
-        const diffInput = document.createElement('input');
-        diffInput.type = 'month';
-        diffInput.className = 'van-expiry-input';
-        diffInput.id = 'vanActualExpiryInput';
-        diffInputWrap.appendChild(diffInput);
+        // 複数期限入力用のコンテナ（既存の addExpiryField ロジックを流用）
+        const vanExpiryContainer = document.createElement('div');
+        vanExpiryContainer.id = 'vanExpiryContainer';
+        diffInputWrap.appendChild(vanExpiryContainer);
         expSection.appendChild(diffInputWrap);
 
         // 状態管理
@@ -1326,7 +1357,14 @@
           vanDiffBtn.classList.add('checked');
           vanMatchBtn.classList.remove('checked');
           diffInputWrap.classList.remove('hidden');
-          setTimeout(function () { diffInput.focus(); }, 50);
+          // 空欄が1つもなければ初期入力欄を追加
+          if (vanExpiryContainer.children.length === 0) {
+            addExpiryField(vanExpiryContainer);
+          }
+          setTimeout(function () {
+            var firstInput = vanExpiryContainer.querySelector('input');
+            if (firstInput) firstInput.focus();
+          }, 50);
         });
       } else {
         // VAN期限なし：従来通り複数期限入力欄
@@ -1435,8 +1473,8 @@
       return true;
     }
 
-    function getExpiries() {
-      const container = $('expiryContainer');
+    function getExpiries(container) {
+      if (!container) container = $('expiryContainer');
       if (!container) return [];
       const inputs = container.querySelectorAll('input');
       const values = [];
@@ -1470,8 +1508,9 @@
       }
 
       // 期限データの決定：VAN期限モード or 従来の複数入力
-      var payloadExpiries = null;   // 従来モード用
-      var payloadActualExpiry = null; // VAN期限モード用
+      var payloadExpiries = null;    // 従来モード用
+      var payloadActualExpiries = null; // VAN期限モード用（配列）
+      var vanExpiryMatchesFlag = null;  // VAN期限モードでの一致/違い判定
       if (item.vanExpiry) {
         // VAN期限モード
         if (!vanExpiryChoice) {
@@ -1479,16 +1518,21 @@
           return;
         }
         if (vanExpiryChoice === 'match') {
-          payloadActualExpiry = item.vanExpiry;
+          payloadActualExpiries = [item.vanExpiry];
+          vanExpiryMatchesFlag = true;
         } else {
-          var actualInput = $('vanActualExpiryInput');
-          var actualVal = actualInput ? actualInput.value : '';
-          if (!validateExpiry(actualVal)) {
-            if (actualInput) actualInput.classList.add('invalid');
-            toast('正しい期限を入力してください（YYYY-MM）', 'error');
+          // 複数期限入力対応：vanExpiryContainer から拾う
+          const vanExpiries = getExpiries($('vanExpiryContainer'));
+          if (vanExpiries && vanExpiries.error) {
+            toast(vanExpiries.error, 'error');
             return;
           }
-          payloadActualExpiry = actualVal;
+          if (!vanExpiries || vanExpiries.length === 0) {
+            toast('正しい期限を1つ以上入力してください', 'error');
+            return;
+          }
+          payloadActualExpiries = vanExpiries;
+          vanExpiryMatchesFlag = false;
         }
       } else {
         // 従来モード（複数期限入力）
@@ -1510,8 +1554,9 @@
         actualStock: qty,
         inventoryDate: inventoryDate,
       };
-      if (payloadActualExpiry) {
-        payload.actualExpiry = payloadActualExpiry;
+      if (payloadActualExpiries) {
+        payload.actualExpiries = payloadActualExpiries;
+        payload.vanExpiryMatches = vanExpiryMatchesFlag;
       } else {
         payload.expiries = payloadExpiries || [];
       }
@@ -1538,7 +1583,7 @@
             toast('棚番変更: → ' + (payload.newShelf || 'なし'), 'ok');
           }
           // 期限が記録された場合、ピボット再生成を予約
-          if ((payload.expiries && payload.expiries.length > 0) || payload.actualExpiry) {
+          if ((payload.expiries && payload.expiries.length > 0) || (payload.actualExpiries && payload.actualExpiries.length > 0)) {
             markPivotDirty();
           }
           const msg = res.message || '記録しました';
@@ -1635,7 +1680,9 @@
         })
           .then((res) => {
             const janCount = (res.janFromMaster || 0) + (res.janKept || 0);
-            toast('取込完了: ' + res.updated + '件更新, ' + res.added + '件追加', 'ok');
+            var msg = '取込完了: ' + res.updated + '件更新, ' + res.added + '件追加';
+            if (res.skippedZero) msg += '（在庫0品目 ' + res.skippedZero + '件スキップ）';
+            toast(msg, 'ok');
             shelvesLoaded = false;
             loadShelves();
           })
@@ -1644,6 +1691,35 @@
           })
           .finally(() => {
             $('importStockBtn').disabled = false;
+          });
+      });
+      input.click();
+    }
+
+    // ─── 医薬品マスタ更新 ───
+    function startMasterImport() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.csv,text/csv';
+      input.addEventListener('change', () => {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        if (!confirm('医薬品マスタを丸ごと入れ替えます。よろしいですか？\n\n（既存マスタは上書きされます）')) return;
+        toast('医薬品マスタを取込中…', 'ok');
+        $('importMasterBtn').disabled = true;
+        file.text().then((csvText) => {
+          return callApi('importMasterCsv', { csvText: csvText });
+        })
+          .then((res) => {
+            toast('✅ 医薬品マスタ更新完了: ' + res.total + '件', 'ok');
+            medicinesLoaded = false;
+            loadAllMedicines();
+          })
+          .catch((err) => {
+            toast('取込エラー: ' + err.message, 'error');
+          })
+          .finally(() => {
+            $('importMasterBtn').disabled = false;
           });
       });
       input.click();
