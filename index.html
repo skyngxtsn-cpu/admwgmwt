@@ -594,11 +594,6 @@
       </div>
       <ul id="recentList" class="recent-list"></ul>
     </section>
-
-    <section class="card">
-      <button type="button" id="rebuildPivotBtn" class="secondary-btn">切迫品シートを更新</button>
-      <div class="hint">切迫品シート（月別リスト）を最新化します</div>
-    </section>
   </main>
 
   <!-- 期限チェックモード -->
@@ -636,6 +631,8 @@
       <div class="hint">VANから出した F メニューCSV をそのまま取込（Shift_JIS対応）</div>
       <button type="button" id="importMasterBtn" class="import-btn" style="margin-top:8px;">📚 医薬品マスタを更新</button>
       <div class="hint">整形済み medicine_master.csv (UTF-8) を取込 → キャッシュも自動クリア</div>
+      <button type="button" id="rebuildPivotBtn" class="import-btn" style="margin-top:8px;background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 4px 12px rgba(16,185,129,0.3);">🔄 切迫品シートを更新</button>
+      <div class="hint">切迫品シート（月別リスト）を最新化します</div>
       <button type="button" id="resetInventoryBtn" class="reset-btn" style="margin-top:8px;">🔄 新しい棚卸しを始める（進捗リセット）</button>
     </section>
 
@@ -1112,6 +1109,10 @@
       if (mode === 'stock' && !shelvesLoaded) loadShelves();
       // 検索/期限チェックモードで初めて医薬品マスタを読む
       if ((mode === 'search' || mode === 'check') && !medicinesLoaded) loadAllMedicines();
+      // 期限チェックタブに切替時、既にロード済みなら件数を表示
+      if (mode === 'check' && medicinesLoaded) {
+        $('checkSearchHint').textContent = MIN_QUERY_LEN + '文字以上で検索（' + MEDICINES.length + '件）';
+      }
     }
 
     // ─── 棚卸しモード ───
@@ -2112,14 +2113,19 @@
     // ─── 個別記録モード ───
     function loadAllMedicines() {
       $('searchHint').textContent = '医薬品マスタを読み込み中…';
+      if ($('checkSearchHint')) $('checkSearchHint').textContent = '医薬品マスタを読み込み中…';
       callApi('getAllMedicines')
         .then((rows) => {
           MEDICINES = rows || [];
           medicinesLoaded = true;
-          $('searchHint').textContent = MIN_QUERY_LEN + '文字以上で検索（' + MEDICINES.length + '件）';
+          const doneMsg = MIN_QUERY_LEN + '文字以上で検索（' + MEDICINES.length + '件）';
+          $('searchHint').textContent = doneMsg;
+          if ($('checkSearchHint')) $('checkSearchHint').textContent = doneMsg;
         })
         .catch((err) => {
-          $('searchHint').textContent = 'マスタ読み込みエラー: ' + err.message;
+          const errMsg = 'マスタ読み込みエラー: ' + err.message;
+          $('searchHint').textContent = errMsg;
+          if ($('checkSearchHint')) $('checkSearchHint').textContent = errMsg;
         });
     }
 
@@ -2271,10 +2277,14 @@
 
       $('rebuildPivotBtn').addEventListener('click', () => {
         $('rebuildPivotBtn').disabled = true;
+        $('rebuildPivotBtn').textContent = '🔄 更新中…';
         callApi('rebuildPivot')
-          .then((res) => toast('期限一覧を更新しました（' + res.rows + '件）', 'ok'))
+          .then((res) => toast('✅ 切迫品シートを最新化しました（' + (res.rows || 0) + '件 / ' + (res.cols || 0) + 'ヶ月分）', 'ok'))
           .catch((err) => toast('エラー: ' + err.message, 'error'))
-          .finally(() => { $('rebuildPivotBtn').disabled = false; });
+          .finally(() => {
+            $('rebuildPivotBtn').disabled = false;
+            $('rebuildPivotBtn').textContent = '🔄 切迫品シートを更新';
+          });
       });
     }
 
