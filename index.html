@@ -10,28 +10,33 @@
   <title>薬局棚卸し</title>
   <style>
     :root {
-      --bg: #f1f5f9; --card-bg: #ffffff; --text: #0f172a;
-      --muted: #64748b; --border: #e2e8f0;
-      --primary: #2563eb; --primary-dark: #1d4ed8; --primary-light: #eff6ff;
-      --secondary: #475569; --danger: #dc2626;
-      --warn: #d97706; --ok: #059669;
-      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
-      --radius: 12px;
+      /* ダークテーマ（黒基調＋高級感） */
+      --bg: #0a0a0b; --card-bg: #17171a; --text: #f5f5f7;
+      --muted: #8e8e93; --border: #2c2c2e;
+      --primary: #64d2ff; --primary-dark: #0a84ff; --primary-light: #1a2632;
+      --secondary: #3a3a3c; --danger: #ff453a;
+      --warn: #ff9f0a; --ok: #30d158;
+      --accent: #bf5af2;
+      --shadow: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3);
+      --radius: 14px;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Hiragino Sans", "Yu Gothic", sans-serif;
       background: var(--bg); color: var(--text);
       font-size: 16px; line-height: 1.5;
       padding-bottom: env(safe-area-inset-bottom);
+      -webkit-font-smoothing: antialiased;
     }
     .app-header {
-      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      background: linear-gradient(180deg, #17171a 0%, #0a0a0b 100%);
       color: #fff; padding: 16px 16px 14px;
       position: sticky; top: 0; z-index: 10;
-      box-shadow: 0 2px 8px rgba(30,58,138,0.3);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 4px 20px rgba(0,0,0,0.4);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
     .app-header h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
     .app-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
@@ -49,14 +54,25 @@
     }
     .ss-badge:active { background: rgba(255,255,255,0.2); }
     .ss-badge span { font-weight: 600; }
+    .cycle-badge {
+      background: rgba(255,255,255,0.2);
+      border: 1.5px solid rgba(255,255,255,0.4);
+      font-size: 14px; font-weight: 600;
+      padding: 8px 12px; margin-bottom: 8px;
+    }
+    .cycle-badge #cycleBadgeName { font-size: 15px; }
+    .cycle-change-hint {
+      font-size: 11px !important; opacity: 0.8; font-weight: 500 !important;
+      margin-left: 4px;
+    }
     .ss-recent-item {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px;
-      margin-bottom: 4px; cursor: pointer; background: white; font-size: 13px;
+      margin-bottom: 4px; cursor: pointer; background: var(--card-bg); font-size: 13px;
     }
     .ss-recent-item:active { background: var(--bg); }
     .ss-recent-current {
-      border-color: var(--ok); background: #ecfdf5;
+      border-color: var(--ok); background: rgba(48,209,88,0.08);
     }
     .inventory-date { display: flex; align-items: center; gap: 8px; font-size: 14px; }
     .inventory-date label { opacity: 0.85; font-size: 13px; }
@@ -68,29 +84,33 @@
     .card {
       background: var(--card-bg); border-radius: var(--radius);
       padding: 16px; box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,0.04);
     }
-    .section-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+    .section-label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; }
     .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     input[type="search"], input[type="text"], input[type="number"], input[type="date"], input[type="month"] {
       width: 100%; padding: 12px 14px; font-size: 16px;
       border: 1.5px solid var(--border); border-radius: 10px;
-      background: #fff; color: var(--text);
-      transition: border-color 0.15s;
+      background: rgba(255,255,255,0.03); color: var(--text);
+      transition: border-color 0.15s, background 0.15s;
     }
-    input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(100,210,255,0.15); background: rgba(255,255,255,0.06); }
+    input::placeholder { color: var(--muted); opacity: 0.7; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
     .primary-btn {
       width: 100%; margin-top: 14px; padding: 14px;
-      font-size: 16px; font-weight: 700; color: #fff;
-      background: var(--primary); border: none; border-radius: 10px; cursor: pointer;
-      box-shadow: 0 2px 6px rgba(37,99,235,0.25);
-      transition: transform 0.1s;
+      font-size: 16px; font-weight: 700; color: #000;
+      background: linear-gradient(180deg, #7ddeff 0%, var(--primary) 100%);
+      border: none; border-radius: 12px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(100,210,255,0.25), inset 0 1px 0 rgba(255,255,255,0.3);
+      transition: transform 0.1s, box-shadow 0.15s;
+      letter-spacing: 0.2px;
     }
-    .primary-btn:active { background: var(--primary-dark); transform: scale(0.98); }
-    .primary-btn:disabled { background: #94a3b8; box-shadow: none; }
+    .primary-btn:active { transform: scale(0.98); box-shadow: 0 2px 6px rgba(100,210,255,0.2); }
+    .primary-btn:disabled { background: var(--secondary); color: var(--muted); box-shadow: none; }
     .secondary-btn {
-      width: 100%; padding: 12px; font-size: 15px; color: #fff;
-      background: var(--secondary); border: none; border-radius: 10px; cursor: pointer;
+      width: 100%; padding: 12px; font-size: 15px; color: var(--text);
+      background: var(--secondary); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;
     }
     .link-btn { background: none; border: none; color: var(--primary); font-size: 14px; cursor: pointer; padding: 4px 8px; font-weight: 600; }
     .suggest-list {
@@ -113,10 +133,10 @@
     .recent-info .name { font-size: 14px; font-weight: 600; }
     .recent-info .meta { font-size: 12px; color: var(--muted); }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; margin-left: 6px; }
-    .badge.impending { background: #fee2e2; color: var(--danger); }
-    .badge.expired { background: #f3f4f6; color: var(--secondary); }
-    .badge.ok { background: #d1fae5; color: var(--ok); }
-    .badge.unknown { background: #fef3c7; color: var(--warn); }
+    .badge.impending { background: rgba(255,69,58,0.15); color: var(--danger); }
+    .badge.expired { background: rgba(142,142,147,0.15); color: var(--muted); }
+    .badge.ok { background: rgba(48,209,88,0.15); color: var(--ok); }
+    .badge.unknown { background: rgba(255,159,10,0.15); color: var(--warn); }
     .delete-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .hidden { display: none !important; }
     .toast {
@@ -127,10 +147,10 @@
       animation: toastIn 0.2s ease-out;
     }
     @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-    .toast.ok { background: #d1fae5; color: var(--ok); }
-    .toast.error { background: #fef3c7; color: var(--warn); }
+    .toast.ok { background: rgba(48,209,88,0.9); color: #fff; backdrop-filter: blur(10px); }
+    .toast.error { background: rgba(255,69,58,0.9); color: #fff; backdrop-filter: blur(10px); }
     .mode-tabs {
-      display: flex; background: #fff;
+      display: flex; background: var(--card-bg);
       border-bottom: 1px solid var(--border);
       position: sticky; top: 0; z-index: 9;
     }
@@ -145,24 +165,26 @@
     }
     .import-btn {
       width: 100%; padding: 14px;
-      background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff;
-      border: none; border-radius: 10px;
+      background: linear-gradient(180deg, #34333a 0%, #2c2c2e 100%); color: #fff;
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
       font-size: 15px; font-weight: 600; cursor: pointer;
-      box-shadow: 0 2px 6px rgba(99,102,241,0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+      transition: transform 0.1s;
     }
-    .import-btn:active { opacity: 0.9; }
+    .import-btn:active { transform: scale(0.98); opacity: 0.9; }
     .shelf-list {
       display: grid; grid-template-columns: repeat(2, 1fr);
       gap: 8px; margin-top: 4px;
     }
     .shelf-item {
-      background: #f8fafc; border: 1.5px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1.5px solid var(--border);
       padding: 14px 8px; border-radius: 10px; cursor: pointer;
       text-align: center; transition: border-color 0.15s, background 0.15s;
       position: relative;
     }
     .shelf-item:active { background: var(--primary-light); border-color: var(--primary); }
-    .shelf-item.done { border-color: var(--ok); background: #f0fdf4; }
+    .shelf-item.done { border-color: var(--ok); background: rgba(48,209,88,0.08); }
     .shelf-item.done::after {
       content: '✓'; position: absolute; top: 6px; right: 8px;
       font-size: 11px; font-weight: 700; color: var(--ok);
@@ -191,13 +213,13 @@
     .stock-qty-row { display: flex; gap: 10px; align-items: center; }
     .stock-qty-ok {
       padding: 14px 22px; font-size: 15px; font-weight: 700;
-      background: #ecfdf5; color: var(--ok); border: 2px solid var(--ok);
+      background: rgba(48,209,88,0.1); color: var(--ok); border: 2px solid var(--ok);
       border-radius: 10px; cursor: pointer; white-space: nowrap;
       transition: all 0.15s;
     }
     .stock-qty-ok:active { transform: scale(0.96); }
     .stock-qty-ok.checked {
-      background: var(--ok); color: #fff; border-color: var(--ok);
+      background: var(--ok); color: #000; border-color: var(--ok);
     }
     .stock-qty-input {
       flex: 1; padding: 14px; font-size: 20px; font-weight: 700;
@@ -214,25 +236,25 @@
       width: 100%; padding: 12px 14px; font-size: 16px;
       border: 1.5px solid var(--border); border-radius: 10px;
     }
-    .stock-expiry-row input.invalid { border-color: var(--danger); background: #fef2f2; }
+    .stock-expiry-row input.invalid { border-color: var(--danger); background: rgba(255,69,58,0.1); }
     /* VAN期限確認セクション */
     .van-expiry-badge {
-      background: #eef7ff; border: 1.5px solid #bfdbfe;
+      background: rgba(100,210,255,0.08); border: 1.5px solid rgba(100,210,255,0.3);
       padding: 12px 16px; border-radius: 10px;
       font-size: 18px; text-align: center; margin-bottom: 10px;
     }
-    .van-expiry-badge strong { color: #1e40af; letter-spacing: 0.5px; }
+    .van-expiry-badge strong { color: var(--primary); letter-spacing: 0.5px; }
     .van-expiry-row { display: flex; gap: 8px; }
     .van-expiry-match-btn, .van-expiry-diff-btn {
       flex: 1; padding: 14px; font-size: 16px; font-weight: 600;
-      border: 1.5px solid var(--border); background: white; border-radius: 10px;
+      border: 1.5px solid var(--border); background: var(--card-bg); border-radius: 10px;
       cursor: pointer;
     }
     .van-expiry-match-btn.checked {
-      background: var(--ok); color: white; border-color: var(--ok);
+      background: var(--ok); color: #000; border-color: var(--ok);
     }
     .van-expiry-diff-btn.checked {
-      background: #fbbf24; color: white; border-color: #fbbf24;
+      background: var(--warn); color: #000; border-color: var(--warn);
     }
     .van-expiry-input-wrap { margin-top: 10px; }
     .van-expiry-input {
@@ -242,27 +264,30 @@
     .stock-actions { margin-top: auto; padding-top: 16px; }
     .stock-next-btn {
       width: 100%; padding: 18px;
-      font-size: 17px; font-weight: 700; color: #fff;
-      background: linear-gradient(135deg, #2563eb, #1d4ed8); border: none; border-radius: 12px;
-      cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.3);
-      transition: transform 0.1s;
+      font-size: 17px; font-weight: 700; color: #000;
+      background: linear-gradient(180deg, #7ddeff 0%, var(--primary) 100%);
+      border: none; border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(100,210,255,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+      transition: transform 0.1s, box-shadow 0.15s;
+      letter-spacing: 0.3px;
     }
-    .stock-next-btn:active { transform: scale(0.98); }
-    .stock-next-btn:disabled { background: #94a3b8; box-shadow: none; }
+    .stock-next-btn:active { transform: scale(0.98); box-shadow: 0 4px 12px rgba(100,210,255,0.2); }
+    .stock-next-btn:disabled { background: var(--secondary); color: var(--muted); box-shadow: none; }
     .stock-nav-row {
       display: flex; gap: 8px; margin-top: 10px;
     }
     .stock-prev-btn {
       flex: 1; padding: 12px;
       font-size: 14px; font-weight: 600; color: var(--muted);
-      background: #f1f5f9; border: 1px solid var(--border);
+      background: var(--card-bg); border: 1px solid var(--border);
       border-radius: 10px; cursor: pointer;
     }
     .stock-prev-btn:disabled { opacity: 0.4; }
     .stock-skip-btn {
       flex: 1; padding: 12px;
       font-size: 14px; font-weight: 600; color: var(--muted);
-      background: #f1f5f9; border: 1px solid var(--border);
+      background: var(--card-bg); border: 1px solid var(--border);
       border-radius: 10px; cursor: pointer;
     }
     .stock-header {
@@ -270,13 +295,13 @@
       margin-bottom: 12px;
     }
     .stock-back-btn {
-      background: #f1f5f9; border: 1px solid var(--border);
+      background: var(--card-bg); border: 1px solid var(--border);
       padding: 8px 14px; border-radius: 8px;
       cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted);
     }
     .stock-progress {
       font-size: 13px; color: var(--muted); font-weight: 700;
-      background: #f1f5f9; padding: 6px 12px; border-radius: 999px;
+      background: var(--card-bg); padding: 6px 12px; border-radius: 999px;
     }
     .stock-search-row {
       display: flex; gap: 8px; margin-bottom: 12px;
@@ -313,8 +338,8 @@
       border: 1.5px solid var(--border); border-radius: 10px;
     }
     .config-banner {
-      padding: 10px 14px; background: #fef3c7; color: #92400e;
-      font-size: 13px; text-align: center;
+      padding: 10px 14px; background: rgba(255,159,10,0.1); color: var(--warn);
+      font-size: 13px; text-align: center; border: 1px solid rgba(255,159,10,0.3);
     }
     .stock-mode-btns {
       display: flex; gap: 6px; margin-top: 6px;
@@ -322,14 +347,14 @@
     .stock-mode-btn {
       flex: 1; padding: 10px 6px; font-size: 13px; font-weight: 600;
       border: 1.5px solid var(--border); border-radius: 10px;
-      background: #f8fafc; color: var(--muted); cursor: pointer;
+      background: var(--card-bg); color: var(--muted); cursor: pointer;
       transition: all 0.15s;
     }
     .stock-mode-btn.active {
       border-color: var(--primary); background: var(--primary-light); color: var(--primary);
     }
     .stock-mode-btn[data-mode="diff"].active {
-      border-color: var(--danger); background: #fef2f2; color: var(--danger);
+      border-color: var(--danger); background: rgba(255,69,58,0.1); color: var(--danger);
     }
     .shelf-progress-bar {
       display: flex; align-items: center; gap: 6px; margin-top: 2px;
@@ -363,17 +388,18 @@
       height: 10px; background: var(--border); border-radius: 5px; overflow: hidden;
     }
     .total-progress-bar-fill {
-      height: 100%; background: linear-gradient(90deg, var(--ok), #34d399);
+      height: 100%; background: linear-gradient(90deg, var(--ok), #64d2ff);
       border-radius: 5px; transition: width 0.4s;
+      box-shadow: 0 0 8px rgba(48,209,88,0.5);
     }
     .diff-badge {
-      display: inline-block; background: #fef2f2; color: var(--danger);
+      display: inline-block; background: rgba(255,69,58,0.15); color: var(--danger);
       font-size: 11px; font-weight: 700; padding: 2px 8px;
       border-radius: 999px; margin-left: 4px;
     }
     .shelf-change-row {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 12px; background: #f8fafc; border-radius: 8px;
+      padding: 8px 12px; background: var(--card-bg); border-radius: 8px;
       margin-bottom: 4px;
     }
     .shelf-change-label {
@@ -381,7 +407,7 @@
     }
     .shelf-change-btn {
       padding: 5px 14px; font-size: 12px; font-weight: 600;
-      background: #fff; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 8px;
       color: var(--secondary); cursor: pointer;
     }
     .shelf-change-btn:active { background: var(--primary-light); }
@@ -389,21 +415,24 @@
     .shelf-change-select {
       flex: 1; padding: 6px 10px; font-size: 14px;
       border: 1.5px solid var(--primary); border-radius: 8px;
-      background: #fff; color: var(--text);
+      background: var(--card-bg); color: var(--text);
     }
     .reset-btn {
       width: 100%; padding: 12px; font-size: 14px; font-weight: 600;
-      background: #fff; border: 1.5px solid var(--border); border-radius: 10px;
+      background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 10px;
       color: var(--muted); cursor: pointer;
     }
     .reset-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
       z-index: 100; display: flex; align-items: center; justify-content: center;
       padding: 16px;
     }
     .reset-dialog {
-      background: #fff; border-radius: 16px; padding: 24px;
-      max-width: 360px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      background: var(--card-bg); border-radius: 18px; padding: 24px;
+      max-width: 360px; width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
     }
     .reset-dialog h3 { margin: 0 0 16px; font-size: 18px; color: var(--danger); }
     #settingsDialog h3 { color: var(--text); }
@@ -418,9 +447,9 @@
     .reset-confirm-input:focus { border-color: var(--danger); outline: none; }
     .reset-dialog-btns { display: flex; gap: 8px; }
     .reset-dialog-btns button { flex: 1; padding: 12px; font-size: 15px; font-weight: 700; border-radius: 10px; cursor: pointer; }
-    .reset-cancel-btn { background: #f1f5f9; border: 1px solid var(--border); color: var(--text); }
+    .reset-cancel-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text); }
     .reset-exec-btn { background: var(--danger); border: none; color: #fff; }
-    .reset-exec-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .reset-exec-btn:disabled { background: var(--secondary); color: var(--muted); cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -434,11 +463,27 @@
       <button type="button" id="settingsBtn" class="settings-btn" title="設定">⚙</button>
     </div>
     <button type="button" id="ssBadge" class="ss-badge" title="接続中のスプレッドシート">📊 <span id="ssBadgeName">読込中…</span></button>
+    <button type="button" id="cycleBadge" class="ss-badge cycle-badge" title="現在の棚卸しサイクル">📅 <span id="cycleBadgeName">サイクル未設定</span> <span class="cycle-change-hint">[変更]</span></button>
     <div class="inventory-date">
-      <label for="inventoryDate">棚卸し日</label>
+      <label for="inventoryDate">📆 実施日</label>
       <input type="date" id="inventoryDate">
     </div>
   </header>
+
+  <!-- サイクル選択モーダル -->
+  <div id="cycleOverlay" class="reset-overlay hidden"></div>
+  <div id="cycleDialog" class="reset-dialog hidden" style="max-width: 400px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;">
+    <h3>📅 棚卸しサイクル切替</h3>
+    <div style="background:var(--bg);padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px;">
+      <div style="color:var(--muted);font-size:11px;">現在のサイクル</div>
+      <div id="cycleCurrentName" style="font-weight:600;margin-top:2px;font-size:15px;">未設定</div>
+    </div>
+    <label style="font-size:12px;color:var(--muted);">新しいサイクルを選択</label>
+    <select id="cycleSelect" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;margin-top:4px;margin-bottom:12px;font-size:14px;background: var(--card-bg);"></select>
+    <button type="button" id="cycleApplyBtn" class="primary-btn" style="width:100%;">📅 このサイクルに切替</button>
+    <div class="hint" style="margin-top:8px;font-size:11px;">⚠ サイクル切替はデータをリセットしません。<br>履歴を分けたい時は「新サイクル開始（進捗リセット）」ボタンを使用してください。</div>
+    <button type="button" id="cycleCloseBtn" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--border);background: var(--card-bg);border-radius:4px;">閉じる</button>
+  </div>
 
   <!-- 設定モーダル -->
   <div id="settingsOverlay" class="reset-overlay hidden"></div>
@@ -463,11 +508,11 @@
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
       <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">アプリのバージョン</div>
       <div id="settingsAppVersion" style="font-size:11px;color:var(--muted);margin-bottom:8px;">v2026.07.28</div>
-      <button type="button" id="settingsReloadBtn" style="width:100%;padding:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);border-radius:6px;font-weight:600;">🔄 アプリを最新版に更新</button>
+      <button type="button" id="settingsReloadBtn" style="width:100%;padding:10px;border:1.5px solid var(--primary);background: var(--card-bg);color:var(--primary);border-radius:6px;font-weight:600;">🔄 アプリを最新版に更新</button>
       <div class="hint" style="margin-top:4px;">キャッシュをクリアして最新版を読み込み直します</div>
     </div>
 
-    <button type="button" id="settingsCloseBtn" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--border);background:white;border-radius:4px;">閉じる</button>
+    <button type="button" id="settingsCloseBtn" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--border);background: var(--card-bg);border-radius:4px;">閉じる</button>
   </div>
 
   <nav class="mode-tabs">
@@ -528,7 +573,7 @@
       <div class="hint">VANから出した F メニューCSV をそのまま取込（Shift_JIS対応）</div>
       <button type="button" id="importMasterBtn" class="import-btn" style="margin-top:8px;">📚 医薬品マスタを更新</button>
       <div class="hint">整形済み medicine_master.csv (UTF-8) を取込 → キャッシュも自動クリア</div>
-      <button type="button" id="resetInventoryBtn" class="reset-btn" style="margin-top:8px;">🔄 新規棚卸しを開始（進捗リセット）</button>
+      <button type="button" id="resetInventoryBtn" class="reset-btn" style="margin-top:8px;">🔄 新サイクル開始（進捗リセット）</button>
     </section>
 
     <section class="card" id="stockModeSelect">
@@ -586,6 +631,7 @@
     const STORAGE_KEY = 'pharmacy_stock_progress';
     const SS_KEY = 'pharmacy_target_spreadsheet';        // {id, name}
     const SS_RECENT_KEY = 'pharmacy_recent_spreadsheets'; // [{id, name}, ...]
+    const CYCLE_KEY = 'pharmacy_current_cycle';           // "YYYY年MM月" 例: "2026年9月"
 
     const $ = (id) => document.getElementById(id);
     let selected = null;
@@ -646,6 +692,11 @@
       if (target && target.id) {
         fullPayload.spreadsheetId = target.id;
       }
+      // 現在のサイクル名も自動付与
+      const cycle = getCycle();
+      if (cycle) {
+        fullPayload.cycle = cycle;
+      }
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ action, payload: fullPayload }),
@@ -657,6 +708,45 @@
       catch (e) { throw new Error('APIレスポンス解析失敗: ' + text.substring(0, 100)); }
       if (data.error) throw new Error(data.error);
       return data.result;
+    }
+
+    // ─── サイクル管理（localStorage） ───
+    function getCycle() {
+      try { return localStorage.getItem(CYCLE_KEY) || ''; }
+      catch (e) { return ''; }
+    }
+    function setCycle(name) {
+      try {
+        if (name) localStorage.setItem(CYCLE_KEY, name);
+        else localStorage.removeItem(CYCLE_KEY);
+      } catch (e) {}
+    }
+    // 今日の日付をベースに「YYYY年MM月」候補を生成（過去12ヶ月〜未来3ヶ月）
+    function getCycleCandidates() {
+      const today = new Date();
+      const candidates = [];
+      // 未来3ヶ月 → 過去12ヶ月の順
+      for (let offset = 3; offset >= -12; offset--) {
+        const d = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+        const y = d.getFullYear();
+        const m = d.getMonth() + 1;
+        candidates.push(y + '年' + m + '月');
+      }
+      return candidates;
+    }
+    // 実施日から推奨サイクル名を返す（デフォルト: 今月）
+    function getSuggestedCycle() {
+      const dateStr = $('inventoryDate') ? $('inventoryDate').value : '';
+      let d;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const p = dateStr.split('-');
+        d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+      } else {
+        d = new Date();
+      }
+      // 実施日の翌月を推奨（8月に始めるなら9月棚卸しがデフォ）
+      const next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      return next.getFullYear() + '年' + (next.getMonth() + 1) + '月';
     }
 
     // ─── スプレッドシート設定（localStorage） ───
@@ -709,10 +799,16 @@
       bindModeTabs();
       bindStockMode();
       bindSettings();
+      bindCycle();
       loadRecent();
-      loadAllMedicines();
+      // loadAllMedicines は検索モードを開いた時だけ遅延ロード（起動高速化）
       loadShelves();
       refreshSpreadsheetBadge();
+      refreshCycleBadge();
+      // 初回起動：サイクル未設定なら自動で選択ダイアログを開く
+      if (!getCycle()) {
+        setTimeout(function () { openCycleDialog(); }, 500);
+      }
       checkResume();
     }
 
@@ -738,6 +834,51 @@
       if (document.visibilityState === 'hidden') schedulePivotRebuild();
     });
     window.addEventListener('pagehide', schedulePivotRebuild);
+
+    // ─── サイクル選択モーダル ───
+    function bindCycle() {
+      $('cycleBadge').addEventListener('click', openCycleDialog);
+      $('cycleCloseBtn').addEventListener('click', closeCycleDialog);
+      $('cycleOverlay').addEventListener('click', closeCycleDialog);
+      $('cycleApplyBtn').addEventListener('click', applyCycleChange);
+    }
+    function openCycleDialog() {
+      $('cycleOverlay').classList.remove('hidden');
+      $('cycleDialog').classList.remove('hidden');
+      var currentCycle = getCycle();
+      $('cycleCurrentName').textContent = currentCycle || '未設定';
+      // ドロップダウンを構築
+      var select = $('cycleSelect');
+      select.innerHTML = '';
+      var candidates = getCycleCandidates();
+      var suggested = currentCycle || getSuggestedCycle();
+      candidates.forEach(function (c) {
+        var opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        if (c === suggested) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+    function closeCycleDialog() {
+      $('cycleOverlay').classList.add('hidden');
+      $('cycleDialog').classList.add('hidden');
+    }
+    function applyCycleChange() {
+      var newCycle = $('cycleSelect').value;
+      if (!newCycle) {
+        toast('サイクルを選択してください', 'error');
+        return;
+      }
+      setCycle(newCycle);
+      refreshCycleBadge();
+      toast('✅ サイクルを切替: ' + newCycle, 'ok');
+      closeCycleDialog();
+    }
+    function refreshCycleBadge() {
+      var cycle = getCycle();
+      $('cycleBadgeName').textContent = cycle || 'サイクル未設定';
+    }
 
     // ─── 設定モーダル ───
     function bindSettings() {
@@ -835,7 +976,7 @@
       medicinesLoaded = false;
       clearProgress();
       loadShelves();
-      loadAllMedicines();
+      // マスタは検索モードに切替時にリロードする
     }
     function refreshSpreadsheetBadge() {
       var current = getTargetSpreadsheet();
@@ -904,6 +1045,8 @@
       $('modeSearchBtn').classList.toggle('active', search);
       $('modeStockBtn').classList.toggle('active', !search);
       if (!search && !shelvesLoaded) loadShelves();
+      // 検索モードで初めて医薬品マスタを読む（初期化時にはロードしない）
+      if (search && !medicinesLoaded) loadAllMedicines();
     }
 
     // ─── 棚卸しモード ───
@@ -1607,16 +1750,26 @@
       overlay.className = 'reset-overlay';
       var dialog = document.createElement('div');
       dialog.className = 'reset-dialog';
+      // サイクル候補のオプションHTML
+      var candidates = getCycleCandidates();
+      var suggested = getSuggestedCycle();
+      var optionsHtml = candidates.map(function (c) {
+        return '<option value="' + c + '"' + (c === suggested ? ' selected' : '') + '>' + c + '</option>';
+      }).join('');
       dialog.innerHTML =
-        '<h3>⚠ 新規棚卸しを開始</h3>' +
-        '<p style="font-size:14px;color:var(--muted);margin:0 0 12px;">前回の棚卸し進捗をリセットして新しく開始します。</p>' +
+        '<h3>⚠ 新サイクル開始（進捗リセット）</h3>' +
+        '<p style="font-size:14px;color:var(--muted);margin:0 0 12px;">新しい棚卸しサイクルを開始します。前回の進捗はリセットされます。</p>' +
+        '<label style="font-size:12px;color:var(--muted);font-weight:600;">新サイクル名を選択</label>' +
+        '<select id="resetCycleSelect" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;margin-top:4px;margin-bottom:12px;font-size:14px;background: var(--card-bg);">' + optionsHtml + '</select>' +
         '<ul class="reset-list">' +
         '<li class="will-clear">🗑 進捗（最終棚卸日）を全品目クリア → 0%に戻る</li>' +
         '<li class="will-clear">🗑 理論在庫を全品目クリア → CSV再取込が必要</li>' +
         '<li class="will-clear">🗑 差異品シートをクリア</li>' +
+        '<li class="will-clear">🗑 期限相違ありシートをクリア</li>' +
         '<li class="will-keep">✓ 棚卸し記録はそのまま残る（履歴）</li>' +
-        '<li class="will-keep">✓ 期限一覧・切迫品は最新データで自動更新される</li>' +
+        '<li class="will-keep">✓ 期限一覧・切迫品は最新データで自動更新</li>' +
         '<li class="will-keep">✓ 棚番変更の履歴は残る</li>' +
+        '<li class="will-keep">✓ 自店在庫のVAN期限は残る</li>' +
         '</ul>' +
         '<p style="font-size:13px;color:var(--danger);font-weight:600;margin:0 0 8px;">確認のため「リセット」と入力してください</p>' +
         '<input type="text" class="reset-confirm-input" id="resetConfirmInput" placeholder="リセット" autocomplete="off">' +
@@ -1630,6 +1783,7 @@
       var confirmInput = document.getElementById('resetConfirmInput');
       var execBtn = document.getElementById('resetExecBtn');
       var cancelBtn = document.getElementById('resetCancelBtn');
+      var cycleSelect = document.getElementById('resetCycleSelect');
 
       confirmInput.addEventListener('input', function () {
         execBtn.disabled = confirmInput.value.trim() !== 'リセット';
@@ -1641,17 +1795,25 @@
         if (e.target === overlay) document.body.removeChild(overlay);
       });
       execBtn.addEventListener('click', function () {
+        var newCycle = cycleSelect.value;
+        if (!newCycle) {
+          toast('サイクルを選択してください', 'error');
+          return;
+        }
         execBtn.disabled = true;
         execBtn.textContent = '処理中…';
         cancelBtn.disabled = true;
         callApi('resetInventory')
           .then(function (res) {
+            // サイクル切替
+            setCycle(newCycle);
+            refreshCycleBadge();
             // localStorage もクリア
             completedShelves = {};
             try { localStorage.removeItem(STORAGE_KEY + '_done'); } catch (e) {}
             clearProgress();
             document.body.removeChild(overlay);
-            toast('棚卸しをリセットしました（' + res.clearedItems + '品目の進捗クリア、差異' + res.diffCleared + '件削除）', 'ok');
+            toast('✅ 新サイクル「' + newCycle + '」を開始しました（' + res.clearedItems + '品目リセット）', 'ok');
             shelvesLoaded = false;
             loadShelves();
           })
@@ -1713,7 +1875,7 @@
           .then((res) => {
             toast('✅ 医薬品マスタ更新完了: ' + res.total + '件', 'ok');
             medicinesLoaded = false;
-            loadAllMedicines();
+            // 検索モードで初回アクセス時に再ロード
           })
           .catch((err) => {
             toast('取込エラー: ' + err.message, 'error');
