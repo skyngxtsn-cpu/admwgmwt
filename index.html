@@ -467,8 +467,8 @@
     </div>
     <button type="button" id="ssBadge" class="ss-badge" title="接続中のスプレッドシート">📊 <span id="ssBadgeName">読込中…</span></button>
     <div style="display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px;">
-      <button type="button" id="cycleBadge" class="ss-badge cycle-badge" title="現在の棚卸しサイクル" style="margin-bottom: 0; flex: 1;">📅 <span id="cycleBadgeName">サイクル未設定</span> <span class="cycle-change-hint">[変更]</span></button>
-      <button type="button" id="cycleHelpBtn" class="cycle-help-btn" title="サイクルとは？">?</button>
+      <button type="button" id="cycleBadge" class="ss-badge cycle-badge" title="現在の棚卸し（タップで新棚卸し開始）" style="margin-bottom: 0; flex: 1;">📅 <span id="cycleBadgeName">未設定</span> <span class="cycle-change-hint">[新棚卸し]</span></button>
+      <button type="button" id="cycleHelpBtn" class="cycle-help-btn" title="この表示は何？">?</button>
     </div>
     <div class="inventory-date">
       <label for="inventoryDate">📆 実施日</label>
@@ -479,26 +479,22 @@
   <!-- サイクル説明モーダル -->
   <div id="cycleHelpOverlay" class="reset-overlay hidden"></div>
   <div id="cycleHelpDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;">
-    <h3 style="color: var(--text);">💡 サイクルって何？</h3>
+    <h3 style="color: var(--text);">💡 この 📅 表示は何？</h3>
     <div style="font-size:14px;line-height:1.7;">
-      <p style="margin:0 0 12px;"><strong>「◯◯月の棚卸し」の名前</strong>です。</p>
+      <p style="margin:0 0 12px;">現在やっている <strong>「何月分の棚卸し」</strong>の名前です。</p>
       <div style="background:#eef7ff;padding:12px;border-radius:8px;border:1px solid #bfdbfe;margin-bottom:12px;">
         <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">例えば…</div>
-        <div style="font-size:13px;">「2026年9月」の棚卸しを、実際には <strong>8月中旬〜9月上旬</strong>にかけて分けて実施したとします。</div>
-        <div style="font-size:13px;margin-top:6px;">→ この場合、<strong>サイクル名は「2026年9月」</strong>で統一しつつ、実施日は日ごとに変わります。</div>
+        <div style="font-size:13px;">「2026年9月」の棚卸しを、実際には <strong>8月中旬〜9月上旬</strong>にかけて分けて実施することがあります。</div>
+        <div style="font-size:13px;margin-top:6px;">→ このアプリでは <strong>棚卸し名は「2026年9月」</strong> のままで、実施日だけ変わっていく形になります。</div>
       </div>
-      <p style="margin:0 0 6px;"><strong>サイクルを付ける理由：</strong></p>
-      <ul style="margin:0 0 16px 20px;padding:0;font-size:13px;line-height:1.6;">
-        <li>スプレッドシート内で「2026年9月分だけ」を後から集計できる</li>
-        <li>実施日と別に「何月分の棚卸しか」がハッキリ分かる</li>
-        <li>他のスタッフが見ても混乱しない</li>
-      </ul>
-      <p style="margin:0 0 6px;font-size:13px;color:var(--muted);"><strong>2つの操作の違い：</strong></p>
-      <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:8px;">
-        <tr style="background:#f2f2f7;"><th style="text-align:left;padding:6px 8px;border:1px solid var(--border);">操作</th><th style="text-align:left;padding:6px 8px;border:1px solid var(--border);">何が変わる？</th></tr>
-        <tr><td style="padding:6px 8px;border:1px solid var(--border);"><strong>📅 サイクル変更</strong></td><td style="padding:6px 8px;border:1px solid var(--border);">名前を変えるだけ<br><span style="color:var(--muted);font-size:11px;">データは何も消えない</span></td></tr>
-        <tr><td style="padding:6px 8px;border:1px solid var(--border);"><strong>🔄 新サイクル開始</strong></td><td style="padding:6px 8px;border:1px solid var(--border);">名前変更＋進捗リセット<br><span style="color:var(--danger);font-size:11px;">数量・進捗が消える</span></td></tr>
-      </table>
+      <p style="margin:0 0 6px;font-weight:700;">💡 新しく棚卸しを始めるには</p>
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted);">📅 バッジをタップ → 「新棚卸し開始」ダイアログが出ます。<br>棚卸し名を選んで実行すると、前回の進捗はリセットされ、新しい棚卸しを始められます。</p>
+      <div style="background:#eefbf1;padding:10px;border-radius:8px;border:1px solid #a7f3d0;font-size:12px;color:#065f46;margin-bottom:8px;">
+        📊 過去の棚卸し記録は「棚卸し記録シート」に残るので、あとで振り返れます。
+      </div>
+      <div style="background:#eef7ff;padding:10px;border-radius:8px;border:1px solid #bfdbfe;font-size:12px;color:#1e3a8a;">
+        💡 新棚卸し開始時：進捗・差異品・期限相違・棚番変更・切迫品・VAN期限は<strong>クリア</strong>されます。<br>棚卸し記録（履歴）と理論在庫は<strong>残ります</strong>。
+      </div>
     </div>
     <button type="button" id="cycleHelpCloseBtn" class="primary-btn" style="width:100%;margin-top:12px;">分かった</button>
   </div>
@@ -610,7 +606,7 @@
       <div class="hint">VANから出した F メニューCSV をそのまま取込（Shift_JIS対応）</div>
       <button type="button" id="importMasterBtn" class="import-btn" style="margin-top:8px;">📚 医薬品マスタを更新</button>
       <div class="hint">整形済み medicine_master.csv (UTF-8) を取込 → キャッシュも自動クリア</div>
-      <button type="button" id="resetInventoryBtn" class="reset-btn" style="margin-top:8px;">🔄 新サイクル開始（進捗リセット）</button>
+      <button type="button" id="resetInventoryBtn" class="reset-btn" style="margin-top:8px;">🔄 新しい棚卸しを始める（進捗リセット）</button>
     </section>
 
     <section class="card" id="stockModeSelect">
@@ -842,17 +838,10 @@
       loadShelves();
       refreshSpreadsheetBadge();
       refreshCycleBadge();
-      // 初回起動：サイクル未設定ならヘルプ→サイクル選択の順で誘導
+      // 初回起動：サイクル未設定なら、暫定で「今月」をセット（明示的にリセットが必要なら本人が実行）
       if (!getCycle()) {
-        setTimeout(function () {
-          openCycleHelp();
-          // ヘルプを閉じたらサイクル選択へ
-          var origClose = $('cycleHelpCloseBtn').onclick;
-          $('cycleHelpCloseBtn').addEventListener('click', function firstTimeHandler() {
-            $('cycleHelpCloseBtn').removeEventListener('click', firstTimeHandler);
-            setTimeout(function () { openCycleDialog(); }, 200);
-          }, { once: true });
-        }, 500);
+        setCycle(getSuggestedCycle());
+        refreshCycleBadge();
       }
       checkResume();
     }
@@ -882,10 +871,8 @@
 
     // ─── サイクル選択モーダル ───
     function bindCycle() {
-      $('cycleBadge').addEventListener('click', openCycleDialog);
-      $('cycleCloseBtn').addEventListener('click', closeCycleDialog);
-      $('cycleOverlay').addEventListener('click', closeCycleDialog);
-      $('cycleApplyBtn').addEventListener('click', applyCycleChange);
+      // バッジタップ = 新棚卸し開始ダイアログを直接開く
+      $('cycleBadge').addEventListener('click', showResetDialog);
       // ヘルプボタン
       $('cycleHelpBtn').addEventListener('click', openCycleHelp);
       $('cycleHelpCloseBtn').addEventListener('click', closeCycleHelp);
@@ -1814,10 +1801,10 @@
         return '<option value="' + c + '"' + (c === suggested ? ' selected' : '') + '>' + c + '</option>';
       }).join('');
       dialog.innerHTML =
-        '<h3>⚠ 新サイクル開始（進捗リセット）</h3>' +
-        '<p style="font-size:13px;color:var(--muted);margin:0 0 14px;line-height:1.5;">前回の進捗を0に戻して、新しい棚卸しを始めます。<br>過去の記録は残るので安心です。</p>' +
+        '<h3>🔄 新しい棚卸しを始める</h3>' +
+        '<p style="font-size:13px;color:var(--muted);margin:0 0 14px;line-height:1.5;">前回の進捗をリセットして、新しい棚卸しを始めます。<br>過去の棚卸し記録は履歴として残るので安心です。</p>' +
 
-        '<label style="font-size:12px;color:var(--muted);font-weight:600;">新サイクル名（何月分の棚卸しか）</label>' +
+        '<label style="font-size:12px;color:var(--muted);font-weight:700;">🏷 何月分の棚卸し？</label>' +
         '<select id="resetCycleSelect" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;margin-top:4px;margin-bottom:16px;font-size:15px;background: var(--card-bg);">' + optionsHtml + '</select>' +
 
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">' +
@@ -1826,19 +1813,20 @@
           '<div style="color:var(--danger);font-weight:700;font-size:13px;margin-bottom:8px;">🗑 消えるもの</div>' +
           '<ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.7;color:var(--danger);">' +
             '<li>進捗（0%に戻る）</li>' +
-            '<li>理論在庫<br><span style="font-size:11px;opacity:0.8;">→CSV再取込が必要</span></li>' +
             '<li>差異品シート</li>' +
             '<li>期限相違ありシート</li>' +
+            '<li>棚番変更履歴</li>' +
+            '<li>期限一覧・切迫品</li>' +
+            '<li>VAN期限<br><span style="font-size:11px;opacity:0.8;">※次回棚卸し前にCSV再取込で更新</span></li>' +
           '</ul>' +
         '</div>' +
         // 右：残るもの
         '<div style="background:#eefbf1;border:1.5px solid #a7f3d0;border-radius:10px;padding:12px;">' +
           '<div style="color:var(--ok);font-weight:700;font-size:13px;margin-bottom:8px;">✓ 残るもの</div>' +
           '<ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.7;color:#065f46;">' +
-            '<li>棚卸し記録（履歴）</li>' +
-            '<li>期限一覧 / 切迫品</li>' +
-            '<li>棚番変更履歴</li>' +
-            '<li>VAN期限</li>' +
+            '<li>棚卸し記録<br><span style="font-size:11px;opacity:0.8;">（履歴として全て残る）</span></li>' +
+            '<li>自店在庫の理論在庫<br><span style="font-size:11px;opacity:0.8;">任意タイミングでCSV取込</span></li>' +
+            '<li>医薬品マスタ</li>' +
           '</ul>' +
         '</div>' +
         '</div>' +
