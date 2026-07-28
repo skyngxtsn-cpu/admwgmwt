@@ -64,6 +64,12 @@
       font-size: 11px !important; opacity: 0.8; font-weight: 500 !important;
       margin-left: 4px;
     }
+    .cycle-help-btn {
+      background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.35);
+      color: #fff; width: 40px; border-radius: 8px;
+      font-size: 18px; font-weight: 700; cursor: pointer; padding: 0;
+    }
+    .cycle-help-btn:active { background: rgba(255,255,255,0.3); }
     .ss-recent-item {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px;
@@ -460,26 +466,60 @@
       <button type="button" id="settingsBtn" class="settings-btn" title="設定">⚙</button>
     </div>
     <button type="button" id="ssBadge" class="ss-badge" title="接続中のスプレッドシート">📊 <span id="ssBadgeName">読込中…</span></button>
-    <button type="button" id="cycleBadge" class="ss-badge cycle-badge" title="現在の棚卸しサイクル">📅 <span id="cycleBadgeName">サイクル未設定</span> <span class="cycle-change-hint">[変更]</span></button>
+    <div style="display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px;">
+      <button type="button" id="cycleBadge" class="ss-badge cycle-badge" title="現在の棚卸しサイクル" style="margin-bottom: 0; flex: 1;">📅 <span id="cycleBadgeName">サイクル未設定</span> <span class="cycle-change-hint">[変更]</span></button>
+      <button type="button" id="cycleHelpBtn" class="cycle-help-btn" title="サイクルとは？">?</button>
+    </div>
     <div class="inventory-date">
       <label for="inventoryDate">📆 実施日</label>
       <input type="date" id="inventoryDate">
     </div>
   </header>
 
+  <!-- サイクル説明モーダル -->
+  <div id="cycleHelpOverlay" class="reset-overlay hidden"></div>
+  <div id="cycleHelpDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;">
+    <h3 style="color: var(--text);">💡 サイクルって何？</h3>
+    <div style="font-size:14px;line-height:1.7;">
+      <p style="margin:0 0 12px;"><strong>「◯◯月の棚卸し」の名前</strong>です。</p>
+      <div style="background:#eef7ff;padding:12px;border-radius:8px;border:1px solid #bfdbfe;margin-bottom:12px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">例えば…</div>
+        <div style="font-size:13px;">「2026年9月」の棚卸しを、実際には <strong>8月中旬〜9月上旬</strong>にかけて分けて実施したとします。</div>
+        <div style="font-size:13px;margin-top:6px;">→ この場合、<strong>サイクル名は「2026年9月」</strong>で統一しつつ、実施日は日ごとに変わります。</div>
+      </div>
+      <p style="margin:0 0 6px;"><strong>サイクルを付ける理由：</strong></p>
+      <ul style="margin:0 0 16px 20px;padding:0;font-size:13px;line-height:1.6;">
+        <li>スプレッドシート内で「2026年9月分だけ」を後から集計できる</li>
+        <li>実施日と別に「何月分の棚卸しか」がハッキリ分かる</li>
+        <li>他のスタッフが見ても混乱しない</li>
+      </ul>
+      <p style="margin:0 0 6px;font-size:13px;color:var(--muted);"><strong>2つの操作の違い：</strong></p>
+      <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:8px;">
+        <tr style="background:#f2f2f7;"><th style="text-align:left;padding:6px 8px;border:1px solid var(--border);">操作</th><th style="text-align:left;padding:6px 8px;border:1px solid var(--border);">何が変わる？</th></tr>
+        <tr><td style="padding:6px 8px;border:1px solid var(--border);"><strong>📅 サイクル変更</strong></td><td style="padding:6px 8px;border:1px solid var(--border);">名前を変えるだけ<br><span style="color:var(--muted);font-size:11px;">データは何も消えない</span></td></tr>
+        <tr><td style="padding:6px 8px;border:1px solid var(--border);"><strong>🔄 新サイクル開始</strong></td><td style="padding:6px 8px;border:1px solid var(--border);">名前変更＋進捗リセット<br><span style="color:var(--danger);font-size:11px;">数量・進捗が消える</span></td></tr>
+      </table>
+    </div>
+    <button type="button" id="cycleHelpCloseBtn" class="primary-btn" style="width:100%;margin-top:12px;">分かった</button>
+  </div>
+
   <!-- サイクル選択モーダル -->
   <div id="cycleOverlay" class="reset-overlay hidden"></div>
   <div id="cycleDialog" class="reset-dialog hidden" style="max-width: 400px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;">
-    <h3>📅 棚卸しサイクル切替</h3>
-    <div style="background:var(--bg);padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px;">
+    <h3 style="color: var(--text);">📅 棚卸しサイクル切替</h3>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 12px;">「何月分の棚卸しか」の名前を切り替えます。データは削除されません。</p>
+    <div style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:12px;font-size:13px;">
       <div style="color:var(--muted);font-size:11px;">現在のサイクル</div>
       <div id="cycleCurrentName" style="font-weight:600;margin-top:2px;font-size:15px;">未設定</div>
     </div>
     <label style="font-size:12px;color:var(--muted);">新しいサイクルを選択</label>
-    <select id="cycleSelect" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;margin-top:4px;margin-bottom:12px;font-size:14px;background: var(--card-bg);"></select>
+    <select id="cycleSelect" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;margin-top:4px;margin-bottom:12px;font-size:14px;background: var(--card-bg);"></select>
     <button type="button" id="cycleApplyBtn" class="primary-btn" style="width:100%;">📅 このサイクルに切替</button>
-    <div class="hint" style="margin-top:8px;font-size:11px;">⚠ サイクル切替はデータをリセットしません。<br>履歴を分けたい時は「新サイクル開始（進捗リセット）」ボタンを使用してください。</div>
-    <button type="button" id="cycleCloseBtn" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--border);background: var(--card-bg);border-radius:4px;">閉じる</button>
+    <div style="background:#fff4e0;color:#92400e;padding:10px;border-radius:8px;margin-top:12px;font-size:12px;line-height:1.6;">
+      💡 この操作は<strong>名前を変えるだけ</strong>です（データは消えません）。<br>
+      新しく数え直したい時は「🔄 新サイクル開始」ボタンを使ってください。
+    </div>
+    <button type="button" id="cycleCloseBtn" style="margin-top:12px;width:100%;padding:10px;border:1px solid var(--border);background: var(--card-bg);border-radius:8px;font-weight:600;">閉じる</button>
   </div>
 
   <!-- 設定モーダル -->
@@ -802,9 +842,17 @@
       loadShelves();
       refreshSpreadsheetBadge();
       refreshCycleBadge();
-      // 初回起動：サイクル未設定なら自動で選択ダイアログを開く
+      // 初回起動：サイクル未設定ならヘルプ→サイクル選択の順で誘導
       if (!getCycle()) {
-        setTimeout(function () { openCycleDialog(); }, 500);
+        setTimeout(function () {
+          openCycleHelp();
+          // ヘルプを閉じたらサイクル選択へ
+          var origClose = $('cycleHelpCloseBtn').onclick;
+          $('cycleHelpCloseBtn').addEventListener('click', function firstTimeHandler() {
+            $('cycleHelpCloseBtn').removeEventListener('click', firstTimeHandler);
+            setTimeout(function () { openCycleDialog(); }, 200);
+          }, { once: true });
+        }, 500);
       }
       checkResume();
     }
@@ -838,6 +886,18 @@
       $('cycleCloseBtn').addEventListener('click', closeCycleDialog);
       $('cycleOverlay').addEventListener('click', closeCycleDialog);
       $('cycleApplyBtn').addEventListener('click', applyCycleChange);
+      // ヘルプボタン
+      $('cycleHelpBtn').addEventListener('click', openCycleHelp);
+      $('cycleHelpCloseBtn').addEventListener('click', closeCycleHelp);
+      $('cycleHelpOverlay').addEventListener('click', closeCycleHelp);
+    }
+    function openCycleHelp() {
+      $('cycleHelpOverlay').classList.remove('hidden');
+      $('cycleHelpDialog').classList.remove('hidden');
+    }
+    function closeCycleHelp() {
+      $('cycleHelpOverlay').classList.add('hidden');
+      $('cycleHelpDialog').classList.add('hidden');
     }
     function openCycleDialog() {
       $('cycleOverlay').classList.remove('hidden');
@@ -1755,19 +1815,34 @@
       }).join('');
       dialog.innerHTML =
         '<h3>⚠ 新サイクル開始（進捗リセット）</h3>' +
-        '<p style="font-size:14px;color:var(--muted);margin:0 0 12px;">新しい棚卸しサイクルを開始します。前回の進捗はリセットされます。</p>' +
-        '<label style="font-size:12px;color:var(--muted);font-weight:600;">新サイクル名を選択</label>' +
-        '<select id="resetCycleSelect" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;margin-top:4px;margin-bottom:12px;font-size:14px;background: var(--card-bg);">' + optionsHtml + '</select>' +
-        '<ul class="reset-list">' +
-        '<li class="will-clear">🗑 進捗（最終棚卸日）を全品目クリア → 0%に戻る</li>' +
-        '<li class="will-clear">🗑 理論在庫を全品目クリア → CSV再取込が必要</li>' +
-        '<li class="will-clear">🗑 差異品シートをクリア</li>' +
-        '<li class="will-clear">🗑 期限相違ありシートをクリア</li>' +
-        '<li class="will-keep">✓ 棚卸し記録はそのまま残る（履歴）</li>' +
-        '<li class="will-keep">✓ 期限一覧・切迫品は最新データで自動更新</li>' +
-        '<li class="will-keep">✓ 棚番変更の履歴は残る</li>' +
-        '<li class="will-keep">✓ 自店在庫のVAN期限は残る</li>' +
-        '</ul>' +
+        '<p style="font-size:13px;color:var(--muted);margin:0 0 14px;line-height:1.5;">前回の進捗を0に戻して、新しい棚卸しを始めます。<br>過去の記録は残るので安心です。</p>' +
+
+        '<label style="font-size:12px;color:var(--muted);font-weight:600;">新サイクル名（何月分の棚卸しか）</label>' +
+        '<select id="resetCycleSelect" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;margin-top:4px;margin-bottom:16px;font-size:15px;background: var(--card-bg);">' + optionsHtml + '</select>' +
+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">' +
+        // 左：消えるもの
+        '<div style="background:#fff1f0;border:1.5px solid #ffccc7;border-radius:10px;padding:12px;">' +
+          '<div style="color:var(--danger);font-weight:700;font-size:13px;margin-bottom:8px;">🗑 消えるもの</div>' +
+          '<ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.7;color:var(--danger);">' +
+            '<li>進捗（0%に戻る）</li>' +
+            '<li>理論在庫<br><span style="font-size:11px;opacity:0.8;">→CSV再取込が必要</span></li>' +
+            '<li>差異品シート</li>' +
+            '<li>期限相違ありシート</li>' +
+          '</ul>' +
+        '</div>' +
+        // 右：残るもの
+        '<div style="background:#eefbf1;border:1.5px solid #a7f3d0;border-radius:10px;padding:12px;">' +
+          '<div style="color:var(--ok);font-weight:700;font-size:13px;margin-bottom:8px;">✓ 残るもの</div>' +
+          '<ul style="margin:0;padding-left:16px;font-size:12px;line-height:1.7;color:#065f46;">' +
+            '<li>棚卸し記録（履歴）</li>' +
+            '<li>期限一覧 / 切迫品</li>' +
+            '<li>棚番変更履歴</li>' +
+            '<li>VAN期限</li>' +
+          '</ul>' +
+        '</div>' +
+        '</div>' +
+
         '<p style="font-size:13px;color:var(--danger);font-weight:600;margin:0 0 8px;">確認のため「リセット」と入力してください</p>' +
         '<input type="text" class="reset-confirm-input" id="resetConfirmInput" placeholder="リセット" autocomplete="off">' +
         '<div class="reset-dialog-btns">' +
