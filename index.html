@@ -1145,22 +1145,32 @@
         suggestList.innerHTML = '<li style="padding:8px;color:var(--muted);">医薬品マスタ読み込み中…</li>';
         return;
       }
-      const qLower = query.toLowerCase();
+      const qUpper = query.toUpperCase();
       const qKana = query.replace(/[ぁ-ゖ]/g, function (ch) {
         return String.fromCharCode(ch.charCodeAt(0) + 0x60);
       });
       const hits = [];
-      for (let i = 0; i < MEDICINES.length && hits.length < MAX_RESULTS; i++) {
+      let scannedFirstSample = null;
+      for (let i = 0; i < MEDICINES.length; i++) {
         const m = MEDICINES[i];
+        if (i === 0) scannedFirstSample = m;
         if (
-          (m.yj || '').toUpperCase().indexOf(qLower.toUpperCase()) !== -1 ||
+          (m.yj || '').toUpperCase().indexOf(qUpper) !== -1 ||
           (m.name || '').indexOf(query) !== -1 ||
           (m.kana || '').indexOf(qKana) !== -1
         ) {
           hits.push(m);
+          if (hits.length >= MAX_RESULTS) break;
         }
       }
+      // デバッグ表示：ヒント欄に状況を出す
+      var sampleStr = scannedFirstSample ? ('サンプル1件目: ' + JSON.stringify(scannedFirstSample).substring(0, 120)) : '';
+      $('checkSearchHint').textContent = '「' + query + '」で ' + hits.length + '件ヒット / 全' + MEDICINES.length + '件検索';
       renderCheckSuggestions(hits);
+      if (hits.length === 0 && scannedFirstSample) {
+        // 何もヒットしない場合、サンプルデータをUIに出す（原因特定用）
+        suggestList.innerHTML = '<li style="padding:8px;color:var(--muted);font-size:11px;">DEBUG ' + sampleStr + '</li>';
+      }
     }
 
     function renderCheckSuggestions(hits) {
