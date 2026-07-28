@@ -208,12 +208,37 @@
       padding: 16px 0; border-top: 1px solid var(--border);
     }
     .stock-expiry-label { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+    .stock-expiry-sublabel { font-size: 11px; color: var(--muted); margin: 8px 0 4px; }
     .stock-expiry-row { margin-bottom: 8px; }
     .stock-expiry-row input {
       width: 100%; padding: 12px 14px; font-size: 16px;
       border: 1.5px solid var(--border); border-radius: 10px;
     }
     .stock-expiry-row input.invalid { border-color: var(--danger); background: #fef2f2; }
+    /* VAN期限確認セクション */
+    .van-expiry-badge {
+      background: #eef7ff; border: 1.5px solid #bfdbfe;
+      padding: 12px 16px; border-radius: 10px;
+      font-size: 18px; text-align: center; margin-bottom: 10px;
+    }
+    .van-expiry-badge strong { color: #1e40af; letter-spacing: 0.5px; }
+    .van-expiry-row { display: flex; gap: 8px; }
+    .van-expiry-match-btn, .van-expiry-diff-btn {
+      flex: 1; padding: 14px; font-size: 16px; font-weight: 600;
+      border: 1.5px solid var(--border); background: white; border-radius: 10px;
+      cursor: pointer;
+    }
+    .van-expiry-match-btn.checked {
+      background: var(--ok); color: white; border-color: var(--ok);
+    }
+    .van-expiry-diff-btn.checked {
+      background: #fbbf24; color: white; border-color: #fbbf24;
+    }
+    .van-expiry-input-wrap { margin-top: 10px; }
+    .van-expiry-input {
+      width: 100%; padding: 12px 14px; font-size: 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+    }
     .stock-actions { margin-top: auto; padding-top: 16px; }
     .stock-next-btn {
       width: 100%; padding: 18px;
@@ -563,6 +588,7 @@
     let currentShelfName = '';
     let currentItemIndex = 0;
     let qtyConfirmed = false;
+    let vanExpiryChoice = null;  // 'match' / 'diff' / null（VAN期限確認の選択状態）
     let shelfResults = {}; // { idx: { diffStatus, expiryStatus } } 棚内の記録結果
     let completedShelves = {}; // localStorage から復元
     let stockCountMode = 'all'; // 'all' | 'uncounted' | 'diff'
@@ -1071,6 +1097,7 @@
       const container = $('stockCardContainer');
       container.innerHTML = '';
       qtyConfirmed = false;
+      vanExpiryChoice = null;
 
       // 全品目完了 → サマリー表示 + 期限一覧を自動更新
       if (currentItemIndex >= currentShelfItems.length) {
@@ -1239,15 +1266,81 @@
       // 期限セクション
       const expSection = document.createElement('div');
       expSection.className = 'stock-expiry-section';
-      const expLabel = document.createElement('div');
-      expLabel.className = 'stock-expiry-label';
-      expLabel.textContent = '期限（切迫品がある場合に入力）';
-      expSection.appendChild(expLabel);
-      const expContainer = document.createElement('div');
-      expContainer.id = 'expiryContainer';
-      expSection.appendChild(expContainer);
+
+      if (item.vanExpiry) {
+        // VAN期限あり：VAN期限を表示して ⚪︎一致 / 違う ボタン
+        const vanLabel = document.createElement('div');
+        vanLabel.className = 'stock-expiry-label';
+        vanLabel.innerHTML = 'VAN登録期限';
+        expSection.appendChild(vanLabel);
+
+        const vanBadge = document.createElement('div');
+        vanBadge.className = 'van-expiry-badge';
+        vanBadge.innerHTML = '📅 <strong>' + item.vanExpiry + '</strong>';
+        expSection.appendChild(vanBadge);
+
+        const vanRow = document.createElement('div');
+        vanRow.className = 'van-expiry-row';
+
+        const vanMatchBtn = document.createElement('button');
+        vanMatchBtn.type = 'button';
+        vanMatchBtn.className = 'van-expiry-match-btn';
+        vanMatchBtn.id = 'vanMatchBtn';
+        vanMatchBtn.textContent = '⚪︎ 一致';
+
+        const vanDiffBtn = document.createElement('button');
+        vanDiffBtn.type = 'button';
+        vanDiffBtn.className = 'van-expiry-diff-btn';
+        vanDiffBtn.id = 'vanDiffBtn';
+        vanDiffBtn.textContent = '違う';
+
+        vanRow.appendChild(vanMatchBtn);
+        vanRow.appendChild(vanDiffBtn);
+        expSection.appendChild(vanRow);
+
+        // 「違う」入力エリア（初期は非表示）
+        const diffInputWrap = document.createElement('div');
+        diffInputWrap.className = 'van-expiry-input-wrap hidden';
+        diffInputWrap.id = 'vanExpiryInputWrap';
+        const diffInputLabel = document.createElement('div');
+        diffInputLabel.className = 'stock-expiry-sublabel';
+        diffInputLabel.textContent = '正しい期限（YYYY-MM）';
+        diffInputWrap.appendChild(diffInputLabel);
+        const diffInput = document.createElement('input');
+        diffInput.type = 'month';
+        diffInput.className = 'van-expiry-input';
+        diffInput.id = 'vanActualExpiryInput';
+        diffInputWrap.appendChild(diffInput);
+        expSection.appendChild(diffInputWrap);
+
+        // 状態管理
+        vanExpiryChoice = null;  // 'match' or 'diff' or null
+        vanMatchBtn.addEventListener('click', function () {
+          vanExpiryChoice = 'match';
+          vanMatchBtn.classList.add('checked');
+          vanDiffBtn.classList.remove('checked');
+          diffInputWrap.classList.add('hidden');
+        });
+        vanDiffBtn.addEventListener('click', function () {
+          vanExpiryChoice = 'diff';
+          vanDiffBtn.classList.add('checked');
+          vanMatchBtn.classList.remove('checked');
+          diffInputWrap.classList.remove('hidden');
+          setTimeout(function () { diffInput.focus(); }, 50);
+        });
+      } else {
+        // VAN期限なし：従来通り複数期限入力欄
+        const expLabel = document.createElement('div');
+        expLabel.className = 'stock-expiry-label';
+        expLabel.textContent = '期限（切迫品がある場合に入力）';
+        expSection.appendChild(expLabel);
+        const expContainer = document.createElement('div');
+        expContainer.id = 'expiryContainer';
+        expSection.appendChild(expContainer);
+        addExpiryField(expContainer);
+      }
+
       card.appendChild(expSection);
-      addExpiryField(expContainer);
 
       // ボタンエリア
       const actions = document.createElement('div');
@@ -1376,23 +1469,53 @@
         return;
       }
 
-      const expiries = getExpiries();
-      if (expiries && expiries.error) {
-        toast(expiries.error, 'error');
-        return;
+      // 期限データの決定：VAN期限モード or 従来の複数入力
+      var payloadExpiries = null;   // 従来モード用
+      var payloadActualExpiry = null; // VAN期限モード用
+      if (item.vanExpiry) {
+        // VAN期限モード
+        if (!vanExpiryChoice) {
+          toast('VAN期限が正しいかチェックしてください（⚪︎一致 or 違う）', 'error');
+          return;
+        }
+        if (vanExpiryChoice === 'match') {
+          payloadActualExpiry = item.vanExpiry;
+        } else {
+          var actualInput = $('vanActualExpiryInput');
+          var actualVal = actualInput ? actualInput.value : '';
+          if (!validateExpiry(actualVal)) {
+            if (actualInput) actualInput.classList.add('invalid');
+            toast('正しい期限を入力してください（YYYY-MM）', 'error');
+            return;
+          }
+          payloadActualExpiry = actualVal;
+        }
+      } else {
+        // 従来モード（複数期限入力）
+        const expiries = getExpiries();
+        if (expiries && expiries.error) {
+          toast(expiries.error, 'error');
+          return;
+        }
+        payloadExpiries = expiries.length > 0 ? expiries : [];
       }
+
       const inventoryDate = $('inventoryDate').value;
       const nextBtn = $('stockNextBtn');
       nextBtn.disabled = true;
       nextBtn.textContent = '記録中…';
 
-      // 棚番変更がセレクト表示中なら newShelf を含める
       var payload = {
         rowNumber: item.rowNumber,
         actualStock: qty,
-        expiries: expiries.length > 0 ? expiries : [],
         inventoryDate: inventoryDate,
       };
+      if (payloadActualExpiry) {
+        payload.actualExpiry = payloadActualExpiry;
+      } else {
+        payload.expiries = payloadExpiries || [];
+      }
+      // 棚番変更がセレクト表示中なら newShelf を含める
       var shelfSelectEl = $('shelfChangeSelect');
       if (shelfSelectEl && !shelfSelectEl.classList.contains('hidden')) {
         var selectedShelf = shelfSelectEl.value;
@@ -1404,18 +1527,24 @@
 
       callApi('updateStockItem', payload)
         .then(function (res) {
-          shelfResults[currentItemIndex] = { diffStatus: res.diffStatus, expiryStatus: res.expiryStatus };
+          shelfResults[currentItemIndex] = {
+            diffStatus: res.diffStatus,
+            expiryStatus: res.expiryStatus,
+            vanExpiryStatus: res.vanExpiryStatus,
+          };
           // 棚番変更が反映された場合、itemを更新
           if (res.shelfChanged && payload.newShelf !== undefined) {
             item.shelf = payload.newShelf;
             toast('棚番変更: → ' + (payload.newShelf || 'なし'), 'ok');
           }
           // 期限が記録された場合、ピボット再生成を予約
-          if (payload.expiries && payload.expiries.length > 0) {
+          if ((payload.expiries && payload.expiries.length > 0) || payload.actualExpiry) {
             markPivotDirty();
           }
           const msg = res.message || '記録しました';
-          toast(msg, res.diffStatus === 'diff' ? 'error' : 'ok');
+          var msgType = 'ok';
+          if (res.diffStatus === 'diff' || res.vanExpiryStatus === 'diff') msgType = 'error';
+          toast(msg, msgType);
           if (res.pivotError) toast('⚠️ ' + res.pivotError, 'error');
           currentItemIndex++;
           renderCurrentItem();
