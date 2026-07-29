@@ -470,7 +470,10 @@
   <header class="app-header">
     <div class="app-title-row">
       <h1>薬局棚卸し</h1>
-      <button type="button" id="settingsBtn" class="settings-btn" title="設定">⚙</button>
+      <div style="display:flex;gap:6px;">
+        <button type="button" id="maintBtn" class="settings-btn" title="メンテナンス（更新・取込）">🔧</button>
+        <button type="button" id="settingsBtn" class="settings-btn" title="設定">⚙</button>
+      </div>
     </div>
     <button type="button" id="ssBadge" class="ss-badge" title="接続中のスプレッドシート">📊 <span id="ssBadgeName">読込中…</span></button>
     <div style="display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px;">
@@ -525,6 +528,42 @@
     <button type="button" id="cycleCloseBtn" style="margin-top:12px;width:100%;padding:10px;border:1px solid var(--border);background: var(--card-bg);border-radius:8px;font-weight:600;">閉じる</button>
   </div>
 
+  <!-- メンテナンスモーダル（データ取込・更新系） -->
+  <div id="maintOverlay" class="reset-overlay hidden"></div>
+  <div id="maintDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101; max-height: 90vh; overflow-y: auto;">
+    <h3 style="color: var(--text);">🔧 メンテナンス</h3>
+
+    <div style="margin-top:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">📥 データ取込</div>
+      <button type="button" id="maintImportStockBtn" class="import-btn">📥 VANの在庫データを取込</button>
+      <div class="hint" style="margin:4px 0 8px;">VANから出した F メニューCSV（Shift_JIS対応）</div>
+      <button type="button" id="maintImportMasterBtn" class="import-btn">📚 医薬品マスタを更新</button>
+      <div class="hint" style="margin:4px 0 0;">整形済み medicine_master.csv (UTF-8)</div>
+    </div>
+
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">🔄 シート更新</div>
+      <button type="button" id="maintRebuildPivotBtn" class="import-btn" style="background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 4px 12px rgba(16,185,129,0.3);">🔄 切迫品シートを更新</button>
+      <div class="hint" style="margin:4px 0 8px;">記録から切迫品リストを再生成</div>
+      <button type="button" id="maintClearImpendingBtn" class="import-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 4px 12px rgba(245,158,11,0.3);">🗑 切迫品シートをクリア</button>
+      <div class="hint" style="margin:4px 0 0;">古いリストを一旦空にしたい時に使用</div>
+    </div>
+
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--danger);letter-spacing:0.5px;margin-bottom:6px;">⚠️ サイクル操作</div>
+      <button type="button" id="maintResetBtn" class="reset-btn" style="width:100%;">🔄 新しい棚卸しを始める（進捗リセット）</button>
+    </div>
+
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">📱 アプリ</div>
+      <div id="maintAppVersion" style="font-size:11px;color:var(--muted);margin-bottom:8px;">ロード日時: —</div>
+      <button type="button" id="maintReloadBtn" style="width:100%;padding:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);border-radius:8px;font-weight:600;">🔄 アプリを最新版に更新</button>
+      <div class="hint" style="margin-top:4px;">キャッシュをクリアして最新版を読み込み直します</div>
+    </div>
+
+    <button type="button" id="maintCloseBtn" style="margin-top:16px;width:100%;padding:10px;border:1px solid var(--border);background: var(--card-bg);border-radius:8px;font-weight:600;">閉じる</button>
+  </div>
+
   <!-- 設定モーダル -->
   <div id="settingsOverlay" class="reset-overlay hidden"></div>
   <div id="settingsDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;">
@@ -544,13 +583,6 @@
       <div id="settingsRecentList"></div>
     </div>
 
-    <!-- アプリ更新セクション -->
-    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">アプリのバージョン</div>
-      <div id="settingsAppVersion" style="font-size:11px;color:var(--muted);margin-bottom:8px;">v2026.07.28</div>
-      <button type="button" id="settingsReloadBtn" style="width:100%;padding:10px;border:1.5px solid var(--primary);background: var(--card-bg);color:var(--primary);border-radius:6px;font-weight:600;">🔄 アプリを最新版に更新</button>
-      <div class="hint" style="margin-top:4px;">キャッシュをクリアして最新版を読み込み直します</div>
-    </div>
 
     <button type="button" id="settingsCloseBtn" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--border);background: var(--card-bg);border-radius:4px;">閉じる</button>
   </div>
@@ -604,16 +636,6 @@
   </main>
 
   <main id="stockMode">
-    <section class="card">
-      <button type="button" id="importStockBtn" class="import-btn">📥 VANの在庫データを取込</button>
-      <div class="hint">VANから出した F メニューCSV をそのまま取込（Shift_JIS対応）</div>
-      <button type="button" id="importMasterBtn" class="import-btn" style="margin-top:8px;">📚 医薬品マスタを更新</button>
-      <div class="hint">整形済み medicine_master.csv (UTF-8) を取込 → キャッシュも自動クリア</div>
-      <button type="button" id="rebuildPivotBtn" class="import-btn" style="margin-top:8px;background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 4px 12px rgba(16,185,129,0.3);">🔄 切迫品シートを更新</button>
-      <div class="hint">自動更新無しです</div>
-      <button type="button" id="resetInventoryBtn" class="reset-btn" style="margin-top:8px;">🔄 新しい棚卸しを始める（進捗リセット）</button>
-    </section>
-
     <section class="card" id="stockModeSelect">
       <span class="section-label">カウントモード</span>
       <div class="stock-mode-btns">
@@ -837,6 +859,7 @@
       bindModeTabs();
       bindStockMode();
       bindSettings();
+      bindMaint();
       bindCycle();
       loadRecent();
       // loadAllMedicines は検索モードを開いた時だけ遅延ロード（起動高速化）
@@ -922,7 +945,6 @@
       $('settingsBtn').addEventListener('click', openSettings);
       $('ssBadge').addEventListener('click', openSettings);
       $('settingsCloseBtn').addEventListener('click', closeSettings);
-      $('settingsReloadBtn').addEventListener('click', reloadAppLatest);
       $('settingsOverlay').addEventListener('click', closeSettings);
       $('settingsApplyBtn').addEventListener('click', applySpreadsheetChange);
     }
@@ -938,12 +960,27 @@
       // 現在のシート名を更新
       var current = getTargetSpreadsheet();
       $('settingsCurrentName').textContent = current ? current.name : '（GAS本体に紐付いた親シート）';
-      // アプリのビルド時刻を表示
-      $('settingsAppVersion').textContent = 'ロード日時: ' + APP_BUILD;
     }
     function closeSettings() {
       $('settingsOverlay').classList.add('hidden');
       $('settingsDialog').classList.add('hidden');
+    }
+
+    // ─── メンテナンスモーダル（更新・取込系） ───
+    function bindMaint() {
+      $('maintBtn').addEventListener('click', openMaint);
+      $('maintCloseBtn').addEventListener('click', closeMaint);
+      $('maintOverlay').addEventListener('click', closeMaint);
+      $('maintReloadBtn').addEventListener('click', reloadAppLatest);
+    }
+    function openMaint() {
+      $('maintOverlay').classList.remove('hidden');
+      $('maintDialog').classList.remove('hidden');
+      $('maintAppVersion').textContent = 'ロード日時: ' + APP_BUILD;
+    }
+    function closeMaint() {
+      $('maintOverlay').classList.add('hidden');
+      $('maintDialog').classList.add('hidden');
     }
     function reloadAppLatest() {
       // キャッシュバスターでURLを変えて強制リロード
@@ -1101,9 +1138,9 @@
         // 差異品モードから戻った場合、棚一覧を再読み込み
         if (!shelvesLoaded) loadShelves();
       });
-      $('importStockBtn').addEventListener('click', startImport);
-      $('importMasterBtn').addEventListener('click', startMasterImport);
-      $('resetInventoryBtn').addEventListener('click', showResetDialog);
+      $('maintImportStockBtn').addEventListener('click', startImport);
+      $('maintImportMasterBtn').addEventListener('click', startMasterImport);
+      $('maintResetBtn').addEventListener('click', showResetDialog);
       // モード切替ボタン
       document.querySelectorAll('.stock-mode-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -1801,7 +1838,6 @@
             '<li>差異品シート</li>' +
             '<li>期限相違ありシート</li>' +
             '<li>棚番変更履歴</li>' +
-            '<li>切迫品</li>' +
             '<li>VAN期限<br><span style="font-size:11px;opacity:0.8;">※次回棚卸し前にCSV再取込で更新</span></li>' +
           '</ul>' +
         '</div>' +
@@ -1812,6 +1848,7 @@
             '<li>棚卸し記録<br><span style="font-size:11px;opacity:0.8;">（履歴として全て残る）</span></li>' +
             '<li>自店在庫の理論在庫<br><span style="font-size:11px;opacity:0.8;">任意タイミングでCSV取込</span></li>' +
             '<li>医薬品マスタ</li>' +
+            '<li>切迫品シート<br><span style="font-size:11px;opacity:0.8;">次の棚卸し完了まで参照用</span></li>' +
           '</ul>' +
         '</div>' +
         '</div>' +
@@ -1880,7 +1917,7 @@
         if (!input.files || input.files.length === 0) return;
         const file = input.files[0];
         toast('在庫データを取込中…', 'ok');
-        $('importStockBtn').disabled = true;
+        $('maintImportStockBtn').disabled = true;
         file.arrayBuffer().then((buffer) => {
           const base64 = arrayBufferToBase64(buffer);
           return callApi('importBoardStock', { base64: base64 });
@@ -1897,7 +1934,7 @@
             toast('取込エラー: ' + err.message, 'error');
           })
           .finally(() => {
-            $('importStockBtn').disabled = false;
+            $('maintImportStockBtn').disabled = false;
           });
       });
       input.click();
@@ -1913,7 +1950,7 @@
         const file = input.files[0];
         if (!confirm('医薬品マスタを丸ごと入れ替えます。よろしいですか？\n\n（既存マスタは上書きされます）')) return;
         toast('医薬品マスタを取込中…', 'ok');
-        $('importMasterBtn').disabled = true;
+        $('maintImportMasterBtn').disabled = true;
         file.text().then((csvText) => {
           return callApi('importMasterCsv', { csvText: csvText });
         })
@@ -1926,7 +1963,7 @@
             toast('取込エラー: ' + err.message, 'error');
           })
           .finally(() => {
-            $('importMasterBtn').disabled = false;
+            $('maintImportMasterBtn').disabled = false;
           });
       });
       input.click();
@@ -2136,15 +2173,28 @@
           });
       });
 
-      $('rebuildPivotBtn').addEventListener('click', () => {
-        $('rebuildPivotBtn').disabled = true;
-        $('rebuildPivotBtn').textContent = '🔄 更新中…';
+      $('maintRebuildPivotBtn').addEventListener('click', () => {
+        $('maintRebuildPivotBtn').disabled = true;
+        $('maintRebuildPivotBtn').textContent = '🔄 更新中…';
         callApi('rebuildPivot')
           .then((res) => toast('✅ 切迫品シートを最新化しました（' + (res.rows || 0) + '件 / ' + (res.cols || 0) + 'ヶ月分）', 'ok'))
           .catch((err) => toast('エラー: ' + err.message, 'error'))
           .finally(() => {
-            $('rebuildPivotBtn').disabled = false;
-            $('rebuildPivotBtn').textContent = '🔄 切迫品シートを更新';
+            $('maintRebuildPivotBtn').disabled = false;
+            $('maintRebuildPivotBtn').textContent = '🔄 切迫品シートを更新';
+          });
+      });
+
+      $('maintClearImpendingBtn').addEventListener('click', () => {
+        if (!confirm('切迫品シートを空にします。よろしいですか？\n\n（棚卸し記録は残るので、後から「切迫品シートを更新」で再生成可能です）')) return;
+        $('maintClearImpendingBtn').disabled = true;
+        $('maintClearImpendingBtn').textContent = '🗑 クリア中…';
+        callApi('clearImpendingSheet')
+          .then(() => toast('✅ 切迫品シートをクリアしました', 'ok'))
+          .catch((err) => toast('エラー: ' + err.message, 'error'))
+          .finally(() => {
+            $('maintClearImpendingBtn').disabled = false;
+            $('maintClearImpendingBtn').textContent = '🗑 切迫品シートをクリア';
           });
       });
     }
