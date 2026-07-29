@@ -1819,9 +1819,6 @@
       }
 
       const inventoryDate = $('inventoryDate').value;
-      const nextBtn = $('stockNextBtn');
-      nextBtn.disabled = true;
-      nextBtn.textContent = '記録中…';
 
       var payload = {
         rowNumber: item.rowNumber,
@@ -1844,34 +1841,39 @@
         }
       }
 
+      // 【楽観的UI】APIレスポンスを待たずに即次のカードを表示
+      const savedItemIndex = currentItemIndex;
+      const savedItem = item;
+      // 期限記録があればピボット再生成を予約
+      if ((payload.expiries && payload.expiries.length > 0) || (payload.actualExpiries && payload.actualExpiries.length > 0)) {
+        markPivotDirty();
+      }
+      // 楽観的に「一致」を仮記録（後で API 結果で上書き）
+      shelfResults[savedItemIndex] = { diffStatus: 'pending', expiryStatus: 'pending' };
+      currentItemIndex++;
+      renderCurrentItem();
+
+      // バックグラウンドで実際の API 呼出し
       callApi('updateStockItem', payload)
         .then(function (res) {
-          shelfResults[currentItemIndex] = {
+          shelfResults[savedItemIndex] = {
             diffStatus: res.diffStatus,
             expiryStatus: res.expiryStatus,
             vanExpiryStatus: res.vanExpiryStatus,
           };
-          // 棚番変更が反映された場合、itemを更新
           if (res.shelfChanged && payload.newShelf !== undefined) {
-            item.shelf = payload.newShelf;
-            toast('棚番変更: → ' + (payload.newShelf || 'なし'), 'ok');
+            savedItem.shelf = payload.newShelf;
           }
-          // 期限が記録された場合、ピボット再生成を予約
-          if ((payload.expiries && payload.expiries.length > 0) || (payload.actualExpiries && payload.actualExpiries.length > 0)) {
-            markPivotDirty();
+          // 差異あり or 期限相違ありの場合だけトースト（成功時は無音でサクサク進める）
+          if (res.diffStatus === 'diff' || res.vanExpiryStatus === 'diff') {
+            toast('⚠️ ' + savedItem.name + ': ' + (res.message || '差異あり'), 'error');
           }
-          const msg = res.message || '記録しました';
-          var msgType = 'ok';
-          if (res.diffStatus === 'diff' || res.vanExpiryStatus === 'diff') msgType = 'error';
-          toast(msg, msgType);
           if (res.pivotError) toast('⚠️ ' + res.pivotError, 'error');
-          currentItemIndex++;
-          renderCurrentItem();
         })
         .catch(function (err) {
-          toast('エラー: ' + err.message, 'error');
-          nextBtn.disabled = false;
-          nextBtn.textContent = '記録して次へ';
+          // 失敗時は目立つトーストで通知（既に次のカードに進んでるが、再度該当行を修正する必要）
+          toast('❌ ' + savedItem.name + ' の記録失敗: ' + err.message, 'error');
+          shelfResults[savedItemIndex] = { diffStatus: 'error', expiryStatus: 'error' };
         });
     }
 
