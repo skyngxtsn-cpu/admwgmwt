@@ -477,7 +477,7 @@
     </div>
     <button type="button" id="ssBadge" class="ss-badge" title="接続中のスプレッドシート">📊 <span id="ssBadgeName">読込中…</span></button>
     <div style="display: flex; gap: 6px; align-items: stretch; margin-bottom: 8px;">
-      <button type="button" id="cycleBadge" class="ss-badge cycle-badge" title="現在の棚卸し（タップで新棚卸し開始）" style="margin-bottom: 0; flex: 1;">📅 <span id="cycleBadgeName">未設定</span> <span class="cycle-change-hint">[新棚卸し]</span></button>
+      <button type="button" id="cycleBadge" class="ss-badge cycle-badge" title="今の棚卸し月（タップで変更）" style="margin-bottom: 0; flex: 1;">📅 <span id="cycleBadgeName">未設定</span> <span class="cycle-change-hint">[変更]</span></button>
       <button type="button" id="cycleHelpBtn" class="cycle-help-btn" title="この表示は何？">?</button>
     </div>
     <div class="inventory-date">
@@ -491,19 +491,16 @@
   <div id="cycleHelpDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;">
     <h3 style="color: var(--text);">💡 この 📅 表示は何？</h3>
     <div style="font-size:14px;line-height:1.7;">
-      <p style="margin:0 0 12px;">現在やっている <strong>「何月分の棚卸し」</strong>の名前です。</p>
+      <p style="margin:0 0 12px;">今やっている <strong>棚卸しの月</strong>です。</p>
       <div style="background:#eef7ff;padding:12px;border-radius:8px;border:1px solid #bfdbfe;margin-bottom:12px;">
         <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">例えば…</div>
         <div style="font-size:13px;">「2026年9月」の棚卸しを、実際には <strong>8月中旬〜9月上旬</strong>にかけて分けて実施することがあります。</div>
-        <div style="font-size:13px;margin-top:6px;">→ このアプリでは <strong>棚卸し名は「2026年9月」</strong> のままで、実施日だけ変わっていく形になります。</div>
+        <div style="font-size:13px;margin-top:6px;">→ このアプリでは <strong>棚卸しの月は「2026年9月」</strong> のままで、実施日だけ変わっていく形になります。</div>
       </div>
-      <p style="margin:0 0 6px;font-weight:700;">💡 新しく棚卸しを始めるには</p>
-      <p style="margin:0 0 12px;font-size:13px;color:var(--muted);">📅 バッジをタップ → 「新棚卸し開始」ダイアログが出ます。<br>棚卸し名を選んで実行すると、前回の進捗はリセットされ、新しい棚卸しを始められます。</p>
+      <p style="margin:0 0 6px;font-weight:700;">💡 バッジをタップすると</p>
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted);">📝 <strong>棚卸しの月だけ変更する</strong>（データ保持）<br>🔄 <strong>新しい月の棚卸しを始める</strong>（進捗リセット付き）<br>の2択が出ます。用途で選んでください。</p>
       <div style="background:#eefbf1;padding:10px;border-radius:8px;border:1px solid #a7f3d0;font-size:12px;color:#065f46;margin-bottom:8px;">
-        📊 過去の棚卸し記録は「棚卸し記録シート」に残るので、あとで振り返れます。
-      </div>
-      <div style="background:#eef7ff;padding:10px;border-radius:8px;border:1px solid #bfdbfe;font-size:12px;color:#1e3a8a;">
-        💡 新棚卸し開始時：進捗・差異品・期限相違・棚番変更・切迫品・VAN期限は<strong>クリア</strong>されます。<br>棚卸し記録（履歴）と自店在庫の理論在庫は<strong>残ります</strong>。
+        📊 過去の棚卸し記録は必ず残るので、あとで振り返れます。
       </div>
     </div>
     <button type="button" id="cycleHelpCloseBtn" class="primary-btn" style="width:100%;margin-top:12px;">分かった</button>
@@ -887,12 +884,80 @@
 
     // ─── サイクル選択モーダル ───
     function bindCycle() {
-      // バッジタップ = 新棚卸し開始ダイアログを直接開く
-      $('cycleBadge').addEventListener('click', showResetDialog);
+      // バッジタップ = 2択メニュー（名前変更 or 新棚卸し開始）
+      $('cycleBadge').addEventListener('click', showCycleActionDialog);
       // ヘルプボタン
       $('cycleHelpBtn').addEventListener('click', openCycleHelp);
       $('cycleHelpCloseBtn').addEventListener('click', closeCycleHelp);
       $('cycleHelpOverlay').addEventListener('click', closeCycleHelp);
+    }
+
+    // 📅バッジタップ時の2択メニュー
+    function showCycleActionDialog() {
+      var overlay = document.createElement('div');
+      overlay.className = 'reset-overlay';
+      var dialog = document.createElement('div');
+      dialog.className = 'reset-dialog';
+      dialog.style.maxWidth = '380px';
+      dialog.innerHTML =
+        '<h3 style="color:var(--text);">📅 棚卸しの月について</h3>' +
+        '<p style="font-size:13px;color:var(--muted);margin:0 0 16px;">今の棚卸し月: <strong style="color:var(--text);">' + (getCycle() || '未設定') + '</strong></p>' +
+        '<button type="button" id="cycleRenameBtn" style="width:100%;padding:14px;background:linear-gradient(180deg,#3b9aff,var(--primary));color:#fff;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:10px;">📝 棚卸しの月だけ変更する</button>' +
+        '<div class="hint" style="margin:-6px 0 14px;color:var(--muted);">データは何も消えません。他デバイスと月を揃える時に使用。</div>' +
+        '<button type="button" id="cycleNewBtn" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--warn),#d97706);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:10px;">🔄 新しい月の棚卸しを始める</button>' +
+        '<div class="hint" style="margin:-6px 0 14px;color:var(--muted);">進捗リセット付き（差異品・期限相違・棚番変更・VAN期限をクリア）</div>' +
+        '<button type="button" id="cycleActionCancelBtn" style="width:100%;padding:10px;border:1px solid var(--border);background:var(--card-bg);border-radius:8px;font-weight:600;">キャンセル</button>';
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      var close = function () { document.body.removeChild(overlay); };
+      document.getElementById('cycleActionCancelBtn').addEventListener('click', close);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+      // サイクル名だけ変更
+      document.getElementById('cycleRenameBtn').addEventListener('click', function () {
+        close();
+        showCycleRenameDialog();
+      });
+      // 新しい棚卸しを始める（リセット）
+      document.getElementById('cycleNewBtn').addEventListener('click', function () {
+        close();
+        showResetDialog();
+      });
+    }
+
+    // サイクル名だけ変更（データは触らない）
+    function showCycleRenameDialog() {
+      var candidates = getCycleCandidates();
+      var current = getCycle() || getSuggestedCycle();
+      var optionsHtml = candidates.map(function (c) {
+        return '<option value="' + c + '"' + (c === current ? ' selected' : '') + '>' + c + '</option>';
+      }).join('');
+      var overlay = document.createElement('div');
+      overlay.className = 'reset-overlay';
+      var dialog = document.createElement('div');
+      dialog.className = 'reset-dialog';
+      dialog.style.maxWidth = '380px';
+      dialog.innerHTML =
+        '<h3 style="color:var(--text);">📝 棚卸しの月を変更</h3>' +
+        '<p style="font-size:13px;color:var(--muted);margin:0 0 12px;">月の表示を変えるだけです。<br>データは何も削除されません。</p>' +
+        '<label style="font-size:12px;color:var(--muted);font-weight:700;">何月の棚卸しですか？</label>' +
+        '<select id="cycleRenameSelect" style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;margin-top:4px;margin-bottom:16px;font-size:15px;background:var(--card-bg);">' + optionsHtml + '</select>' +
+        '<div class="reset-dialog-btns">' +
+          '<button type="button" id="cycleRenameCancelBtn" class="reset-cancel-btn">キャンセル</button>' +
+          '<button type="button" id="cycleRenameOkBtn" class="primary-btn" style="margin-top:0;">変更する</button>' +
+        '</div>';
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      var close = function () { document.body.removeChild(overlay); };
+      document.getElementById('cycleRenameCancelBtn').addEventListener('click', close);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+      document.getElementById('cycleRenameOkBtn').addEventListener('click', function () {
+        var newName = document.getElementById('cycleRenameSelect').value;
+        if (!newName) { toast('サイクルを選択してください', 'error'); return; }
+        setCycle(newName);
+        refreshCycleBadge();
+        toast('✅ 棚卸しの月を「' + newName + '」に変更', 'ok');
+        close();
+      });
     }
     function openCycleHelp() {
       $('cycleHelpOverlay').classList.remove('hidden');
@@ -1895,7 +1960,7 @@
             try { localStorage.removeItem(STORAGE_KEY + '_done'); } catch (e) {}
             clearProgress();
             document.body.removeChild(overlay);
-            toast('✅ 新サイクル「' + newCycle + '」を開始しました（' + res.clearedItems + '品目リセット）', 'ok');
+            toast('✅ 「' + newCycle + '」の棚卸しを開始（' + res.clearedItems + '品目リセット）', 'ok');
             shelvesLoaded = false;
             loadShelves();
           })
