@@ -154,6 +154,13 @@
     @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
     .toast.ok { background: linear-gradient(135deg, var(--ok), #2fbf50); color: #fff; }
     .toast.error { background: linear-gradient(135deg, var(--danger), #d92e24); color: #fff; }
+    .toast-action {
+      margin-left: 14px; padding: 6px 14px;
+      background: rgba(255,255,255,0.25); border: 1.5px solid rgba(255,255,255,0.6);
+      color: #fff; border-radius: 8px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .toast-action:active { background: rgba(255,255,255,0.4); }
     .mode-tabs {
       display: flex; background: var(--card-bg);
       border-bottom: 1px solid var(--border);
@@ -2066,13 +2073,6 @@
       $('memoInput').value = '';
     }
 
-    // 個別記録カード表示時、期限入力欄を1つ用意（棚卸しモードと同じ addExpiryField 流用）
-    function initIndividualExpiryFields() {
-      const c = $('expiryContainerInd');
-      c.innerHTML = '';
-      addExpiryField(c);
-    }
-
     function bindForm() {
       $('clearSelected').addEventListener('click', clearSelection);
       $('submitBtn').addEventListener('click', () => {
@@ -2115,7 +2115,12 @@
             if (expired > 0) msg += ' / 🛑 期限切れ ' + expired;
             if (impending > 0) msg += ' / ⚠️ 切迫 ' + impending;
             if (ok > 0) msg += ' / 余裕あり ' + ok;
-            toast(msg, (expired > 0 || impending > 0) ? 'error' : 'ok');
+            // 記録した行番号を集めて、取消アクション付きトーストを表示
+            var rowNumbers = results.map(function (r) { return r.rowNumber; }).filter(Boolean);
+            toast(msg, (expired > 0 || impending > 0) ? 'error' : 'ok', rowNumbers.length > 0 ? {
+              label: '取消',
+              onClick: function () { undoRecords(rowNumbers); }
+            } : null);
             clearSelection();
             loadRecent();
             // 個別記録後は自動で切迫品シートを更新（記録件数が少ないので許容範囲）
@@ -2202,14 +2207,45 @@
       return ({ impending: '切迫', expired: '期限切', ok: 'OK', unknown: '?' })[status] || '?';
     }
 
+    // 記録した行を取り消す（行番号降順で削除 → 行ずれ防止）
+    function undoRecords(rowNumbers) {
+      const sorted = rowNumbers.slice().sort(function (a, b) { return b - a; });
+      const deletions = sorted.map(function (rn) {
+        return callApi('deleteRecord', { rowNumber: rn }).catch(function (e) {
+          console.warn('delete failed row=' + rn, e);
+        });
+      });
+      Promise.all(deletions).then(function () {
+        toast('↩️ ' + sorted.length + '件を取消しました', 'ok');
+        loadRecent();
+        callApi('rebuildPivot').catch(function () {});
+      });
+    }
+
     let toastTimer = null;
-    function toast(msg, kind) {
+    function toast(msg, kind, action) {
       const el = $('toast');
       el.className = 'toast ' + (kind || 'ok');
-      el.textContent = msg;
+      el.innerHTML = '';
+      const msgSpan = document.createElement('span');
+      msgSpan.textContent = msg;
+      el.appendChild(msgSpan);
+      if (action && action.label && typeof action.onClick === 'function') {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'toast-action';
+        btn.textContent = action.label;
+        btn.addEventListener('click', function () {
+          el.hidden = true;
+          if (toastTimer) clearTimeout(toastTimer);
+          action.onClick();
+        });
+        el.appendChild(btn);
+      }
       el.hidden = false;
       if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
+      // アクション付きは長めに表示（8秒）
+      toastTimer = setTimeout(() => { el.hidden = true; }, action ? 8000 : 3500);
     }
 
     document.addEventListener('DOMContentLoaded', init);
