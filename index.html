@@ -569,6 +569,7 @@
     <div style="background:var(--bg);padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px;">
       <div style="color:var(--muted);font-size:11px;">現在の接続先</div>
       <div id="settingsCurrentName" style="font-weight:600;margin-top:2px;">読込中…</div>
+      <button type="button" id="settingsCopyUrlBtn" style="margin-top:8px;padding:6px 12px;border:1.5px solid var(--primary);background:var(--card-bg);color:var(--primary);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">📋 スプレッドシートURLをコピー</button>
     </div>
 
     <label style="font-size:12px;color:var(--muted);">新しいスプレッドシートURLを貼り付け</label>
@@ -1012,6 +1013,59 @@
       $('settingsCloseBtn').addEventListener('click', closeSettings);
       $('settingsOverlay').addEventListener('click', closeSettings);
       $('settingsApplyBtn').addEventListener('click', applySpreadsheetChange);
+      $('settingsCopyUrlBtn').addEventListener('click', copyCurrentSpreadsheetUrl);
+    }
+
+    // 現在のスプレッドシートのURLをクリップボードにコピー
+    function copyCurrentSpreadsheetUrl() {
+      var current = getTargetSpreadsheet();
+      // localStorage にIDがない場合は、GAS経由で取得を試みる
+      if (current && current.id) {
+        var url = 'https://docs.google.com/spreadsheets/d/' + current.id + '/edit';
+        writeToClipboard(url).then(function () {
+          toast('✅ URLをコピーしました', 'ok');
+        }).catch(function () {
+          toast('コピー失敗: ' + url, 'error');
+        });
+      } else {
+        // localStorage未設定 → GAS本体紐付きシート
+        var btn = $('settingsCopyUrlBtn');
+        btn.disabled = true;
+        btn.textContent = '取得中…';
+        callApi('getCurrentSpreadsheet').then(function (res) {
+          writeToClipboard(res.url || '').then(function () {
+            toast('✅ URLをコピーしました', 'ok');
+          });
+        }).catch(function (err) {
+          toast('URL取得エラー: ' + err.message, 'error');
+        }).finally(function () {
+          btn.disabled = false;
+          btn.textContent = '📋 スプレッドシートURLをコピー';
+        });
+      }
+    }
+
+    // クリップボード書き込み（fallback付き）
+    function writeToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      // 古いブラウザ用フォールバック
+      return new Promise(function (resolve, reject) {
+        try {
+          var textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      });
     }
     // アプリのビルド識別子（HTMLがロードされた時刻。同じHTMLでも初回ロード日時が入る）
     // 更新前後で値が変わる = ちゃんと最新版になった証拠
