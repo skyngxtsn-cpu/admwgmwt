@@ -30,13 +30,15 @@
       display: flex; justify-content: space-between; align-items: center;
     }
     .app-header h1 { margin: 0; font-size: 18px; font-weight: 700; }
-    .back-btn {
+    .header-btns { display: flex; gap: 6px; }
+    .back-btn, .print-btn {
       background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.5);
       color: #fff; padding: 8px 14px; border-radius: 8px;
       font-size: 13px; font-weight: 600; cursor: pointer;
       text-decoration: none;
+      font-family: inherit;
     }
-    .back-btn:active { background: rgba(255,255,255,0.35); }
+    .back-btn:active, .print-btn:active { background: rgba(255,255,255,0.35); }
     #content {
       max-width: 800px; margin: 0 auto;
       background: var(--card-bg);
@@ -124,12 +126,99 @@
       font-size: 14px;
     }
     .toc a:hover { text-decoration: underline; }
+
+    /* 印刷用スタイル */
+    @media print {
+      body {
+        background: white;
+        font-size: 11pt;
+        line-height: 1.5;
+      }
+      .app-header, .header-btns, .back-btn, .print-btn { display: none !important; }
+      #content {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        background: white;
+      }
+      #content h1 {
+        font-size: 20pt;
+        border-bottom: 2px solid #000;
+        color: #000;
+        page-break-after: avoid;
+      }
+      #content h2 {
+        font-size: 15pt;
+        color: #000;
+        border-top: none;
+        margin-top: 20px;
+        padding-top: 8px;
+        page-break-after: avoid;
+        page-break-before: auto;
+      }
+      #content h3, #content h4 {
+        color: #000;
+        page-break-after: avoid;
+      }
+      #content table {
+        page-break-inside: avoid;
+        font-size: 10pt;
+      }
+      #content th {
+        background: #eee !important;
+        color: #000;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      #content tr:nth-child(even) td {
+        background: #f9f9f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      #content code {
+        background: #f0f0f0 !important;
+        color: #333;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      #content pre {
+        background: #f5f5f5 !important;
+        color: #000 !important;
+        border: 1px solid #ccc;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      #content pre code { color: #000 !important; }
+      .toc {
+        background: #f8f8f8 !important;
+        border: 1px solid #ccc;
+        page-break-inside: avoid;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .toc a { color: #000 !important; }
+      #content blockquote {
+        background: #f5f5f5 !important;
+        border-left: 3px solid #999;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      /* ページ余白 */
+      @page {
+        margin: 15mm;
+        size: A4;
+      }
+    }
   </style>
 </head>
 <body>
   <header class="app-header">
     <h1>使い方マニュアル</h1>
-    <a href="index.html" class="back-btn">← アプリに戻る</a>
+    <div class="header-btns">
+      <button type="button" class="print-btn" onclick="window.print()">🖨 印刷</button>
+      <a href="index.html" class="back-btn">← アプリに戻る</a>
+    </div>
   </header>
 
   <div id="content">
@@ -195,13 +284,33 @@ iPhone や iPad の場合：
 
 ## 3. 棚卸しの基本フロー
 
-以下の3ステップの繰り返しです。
+### 大まかな流れ
+
+1. **棚卸しを始める前**：VANから在庫データを取り込む（詳細は6章）
+2. **棚卸し中**：棚番を選ぶ → カードで数量と期限を入力 → 記録して次へ（繰り返し）
+3. **棚卸しが終わったら**：切迫品シートを更新する（詳細は下記）
+
+途中でアプリを閉じても、続きから再開できます。
+
+### 棚卸し中の3ステップ
 
 1. **棚番を選ぶ** — 一覧から今回数える棚をタップ
 2. **カードで数量と期限を入力する** — 1品ずつ表示されるカードで入力
 3. **記録して次へ** — ボタンを押すと自動で次の品目に進む
 
-途中でアプリを閉じても、続きから再開できます。
+### 棚卸しが終わったら：切迫品シートを更新する
+
+棚卸しモードでは、記録した期限は **自動で切迫品シートに反映されません**。
+棚卸しが一通り終わったら、必ず以下を実施してください。
+
+1. 画面右上の工具ボタン（メンテナンス）をタップ
+2. 「切迫品シートを更新」ボタン（緑色）をタップ
+3. 「切迫品シートを最新化しました」と表示されたら完了
+
+これで、記録した期限が切迫品シート（9ヶ月以内に期限切れの薬の一覧）に反映されます。
+
+なお、**個別記録タブで期限を記録した場合は自動で切迫品シートが更新されます**。
+手動更新が必要なのは棚卸しモードでの記録後だけです。
 
 ---
 
@@ -432,7 +541,56 @@ iPhone や iPad の場合：
 
 ---
 
-## 6. スプレッドシートで確認できること
+## 6. VANの在庫データを更新する
+
+このアプリの「理論在庫」を最新化するために、VANから在庫データを出してアプリに取り込む作業です。
+棚卸しを始める前に必ず実施してください。
+
+### いつやるか
+
+- 棚卸しを始める日の朝
+- 部分棚卸しで日をまたぐ場合は、その日の作業を始める前
+- 途中で在庫が動いた後（日をまたいだ後）
+
+### 手順1：VANから在庫CSVを出力する
+
+1. VAN を開き、画面上部の日付が **今日** になっていることを確認する
+2. 「初期表示」ボタンを押して、薬局の在庫が全て表示された状態にする
+3. 画面下のタブから「CSV」を選ぶ
+4. 画面上のタブから「5. 棚卸用アプリ」を選ぶ
+5. 出力ボタンを押す
+
+デスクトップに CSV ファイルが生成されます（ファイル名の例：`20260729140347_Fメニュー`）。
+ファイル名の先頭には出力した日時が入ります。
+
+### 手順2：アプリで取り込む
+
+1. デスクトップの「薬局棚卸しアプリ」を開く
+2. 画面右上の工具ボタン（メンテナンス）をタップ
+3. 「VANの在庫データを取込」ボタンをタップ
+4. ファイル選択画面が開く
+5. 「SDN」フォルダを開く
+6. 先ほど生成した `_Fメニュー` の付いたファイルを選ぶ（複数ある場合は日時が一番新しいもの）
+7. 「取込完了：N件更新、M件追加」と表示されたら完了
+
+### 注意点
+
+- 棚卸しの途中に取り込むと、その時点までに書き込まれた理論在庫が最新のVANデータで上書きされます
+- 通常は「棚卸しを始める前」に一度だけ実行してください
+- 部分棚卸しで日をまたぐ場合は「その日の作業を始める前」に実行してください
+- 取り込みの前に、必ず VAN の日付が今日になっていることを確認してください
+
+### 取り込み後に更新される項目
+
+- 自店在庫シートの「理論在庫」列
+- 自店在庫シートの「VAN期限」列
+- 自店在庫シートに新しい品目があれば追加されます
+
+棚卸し記録・進捗などは上書きされません。
+
+---
+
+## 7. スプレッドシートで確認できること
 
 Google スプレッドシートを開くと、以下のシートで内容を確認できます。
 画面下部のタブで切り替えます。
@@ -649,7 +807,7 @@ VAN側で期限を修正した後、次回の棚卸しで「一致」ボタン�
 
 ---
 
-## 7. 困った時の対処
+## 8. 困った時の対処
 
 | 症状 | 対処 |
 |---|---|
@@ -664,7 +822,7 @@ VAN側で期限を修正した後、次回の棚卸しで「一致」ボタン�
 
 ---
 
-## 8. 触ってはいけない場所（管理者専用）
+## 9. 触ってはいけない場所（管理者専用）
 
 以下は誤操作するとデータが失われる可能性があるため、絶対に触らないでください。
 
@@ -672,13 +830,11 @@ VAN側で期限を修正した後、次回の棚卸しで「一致」ボタン�
 
 設定モーダルが開きます。スプレッドシートの切替機能が含まれるため、触ると別のスプレッドシートに繋がって記録が別の場所に入る可能性があります。
 
-### ヘッダの工具ボタン
+### ヘッダの工具ボタン内のこれらのボタン
 
-メンテナンスモーダルが開きます。以下のボタンが含まれます。
+工具ボタンからメンテナンスモーダルが開きますが、以下は触らないでください。
 
-- VANの在庫データを取込 — 理論在庫を上書きします
 - 医薬品マスタを更新 — マスタを丸ごと入れ替えます
-- 切迫品シートを更新 — シートを再生成します
 - 切迫品シートをクリア — 切迫品を空にします
 - 新しい棚卸しを始める — 進捗を全てリセットします
 
@@ -693,10 +849,14 @@ VAN側で期限を修正した後、次回の棚卸しで「一致」ボタン�
 - 「個別記録」タブの中身
 - 「棚卸しモード」タブの中身（品目カード操作を含む）
 - 実施日（ヘッダの日付入力欄）
+- 工具ボタン内の「VANの在庫データを取込」ボタン（在庫更新用）
+- 工具ボタン内の「切迫品シートを更新」ボタン（棚卸し後に必ず実行）
+- 工具ボタン内の「使い方マニュアルを開く」ボタン
+- 工具ボタン内の「アプリを最新版に更新」ボタン
 
 ---
 
-## 9. 質問は管理者へ
+## 10. 質問は管理者へ
 
 操作方法や動作について分からないことがあれば、遠慮なく管理者にご相談ください。
 </script>
