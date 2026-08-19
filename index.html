@@ -688,7 +688,7 @@
 
   <script>
   (function () {
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxq0z02p3_W0iddUhvRTAdRmgv1YpJqwdbeb7mypQ9dc6r4ehpY55Ol4uHRPs2KfgIU/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwNwHBMRJKgU5IzBvtMLbmaNgd7jLq1cWPzH6oWGtNIMMlSYfa9K3j-dbx_WJfYgGM_OA/exec';
 
     const SEARCH_DEBOUNCE_MS = 100;
     const MIN_QUERY_LEN = 2;
@@ -2305,7 +2305,15 @@
         $('maintRebuildPivotBtn').disabled = true;
         $('maintRebuildPivotBtn').textContent = '🔄 更新中…';
         callApi('rebuildPivot')
-          .then((res) => toast('✅ 切迫品シートを最新化しました（' + (res.rows || 0) + '件 / ' + (res.cols || 0) + 'ヶ月分）', 'ok'))
+          .then((res) => {
+            var base = res.baseCycle || '未設定';
+            var last = res.thresholdYm || '?';
+            var months = res.impendingMonths != null ? res.impendingMonths : '?';
+            var msg = '✅ 切迫品シートを最新化\n'
+                    + '基準: ' + base + ' / ' + months + 'ヶ月先まで（〜' + last + '）\n'
+                    + '件数: ' + (res.rows || 0) + '件 / ' + (res.cols || 0) + 'ヶ月分';
+            toast(msg, 'ok', { duration: 6000 });
+          })
           .catch((err) => toast('エラー: ' + err.message, 'error'))
           .finally(() => {
             $('maintRebuildPivotBtn').disabled = false;
@@ -2406,6 +2414,7 @@
       el.className = 'toast ' + (kind || 'ok');
       el.innerHTML = '';
       const msgSpan = document.createElement('span');
+      msgSpan.style.whiteSpace = 'pre-line';
       msgSpan.textContent = msg;
       el.appendChild(msgSpan);
       if (action && action.label && typeof action.onClick === 'function') {
@@ -2422,8 +2431,10 @@
       }
       el.hidden = false;
       if (toastTimer) clearTimeout(toastTimer);
-      // アクション付きは長めに表示（8秒）
-      toastTimer = setTimeout(() => { el.hidden = true; }, action ? 8000 : 3500);
+      // 表示時間: action.duration があればそれ / アクション付きは8秒 / 通常は3.5秒
+      var duration = (action && action.duration) ? action.duration
+                     : (action && action.label ? 8000 : 3500);
+      toastTimer = setTimeout(() => { el.hidden = true; }, duration);
     }
 
     document.addEventListener('DOMContentLoaded', init);
