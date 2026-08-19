@@ -472,8 +472,8 @@
     <div class="app-title-row">
       <h1>薬局棚卸し</h1>
       <div style="display:flex;gap:6px;">
-        <button type="button" id="maintBtn" class="settings-btn" title="メンテナンス（更新・取込）">🔧</button>
-        <button type="button" id="settingsBtn" class="settings-btn" title="設定">⚙</button>
+        <button type="button" id="maintBtn" class="settings-btn" title="従業員メニュー（VAN取込・切迫品更新・マニュアル）">🔧</button>
+        <button type="button" id="settingsBtn" class="settings-btn" title="管理者メニュー（マスタ更新・新棚卸し開始・URL切替）">⚙</button>
       </div>
     </div>
     <button type="button" id="ssBadge" class="ss-badge" title="接続中のスプレッドシート">📊 <span id="ssBadgeName">読込中…</span></button>
@@ -526,30 +526,22 @@
     <button type="button" id="cycleCloseBtn" style="margin-top:12px;width:100%;padding:10px;border:1px solid var(--border);background: var(--card-bg);border-radius:8px;font-weight:600;">閉じる</button>
   </div>
 
-  <!-- メンテナンスモーダル（データ取込・更新系） -->
+  <!-- 従業員メニュー（日常業務） -->
   <div id="maintOverlay" class="reset-overlay hidden"></div>
   <div id="maintDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101; max-height: 90vh; overflow-y: auto;">
-    <h3 style="color: var(--text);">🔧 メンテナンス</h3>
+    <h3 style="color: var(--text);">🔧 従業員メニュー</h3>
+    <p style="font-size:12px;color:var(--muted);margin:2px 0 12px;">日常の作業で使うメニューです</p>
 
     <div style="margin-top:12px;">
       <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">📥 データ取込</div>
       <button type="button" id="maintImportStockBtn" class="import-btn">📥 VANの在庫データを取込</button>
-      <div class="hint" style="margin:4px 0 8px;">VANから出した F メニューCSV（Shift_JIS対応）</div>
-      <button type="button" id="maintImportMasterBtn" class="import-btn">📚 医薬品マスタを更新</button>
-      <div class="hint" style="margin:4px 0 0;">整形済み medicine_master.csv (UTF-8)</div>
+      <div class="hint" style="margin:4px 0 0;">VANから出した F メニューCSV（Shift_JIS対応）</div>
     </div>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
       <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">🔄 シート更新</div>
       <button type="button" id="maintRebuildPivotBtn" class="import-btn" style="background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 4px 12px rgba(16,185,129,0.3);">🔄 切迫品シートを更新</button>
-      <div class="hint" style="margin:4px 0 8px;">記録から切迫品リストを再生成</div>
-      <button type="button" id="maintClearImpendingBtn" class="import-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);box-shadow:0 4px 12px rgba(245,158,11,0.3);">🗑 切迫品シートをクリア</button>
-      <div class="hint" style="margin:4px 0 0;">古いリストを一旦空にしたい時に使用</div>
-    </div>
-
-    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-      <div style="font-size:11px;font-weight:700;color:var(--danger);letter-spacing:0.5px;margin-bottom:6px;">⚠️ サイクル操作</div>
-      <button type="button" id="maintResetBtn" class="reset-btn" style="width:100%;">🔄 新しい棚卸しを始める（進捗リセット）</button>
+      <div class="hint" style="margin:4px 0 0;">記録から切迫品リストを再生成</div>
     </div>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
@@ -565,31 +557,52 @@
       <div class="hint" style="margin-top:4px;">キャッシュをクリアして最新版を読み込み直します</div>
     </div>
 
+    <div style="margin-top:16px;padding:10px;border-radius:8px;background:#fef3c7;font-size:11px;color:#78350f;line-height:1.5;">
+      💡 マスタ更新・新しい棚卸し開始・URL切替などの管理系操作は、ヘッダの <strong>⚙</strong>（管理者メニュー）から行います。
+    </div>
+
     <button type="button" id="maintCloseBtn" style="margin-top:16px;width:100%;padding:10px;border:1px solid var(--border);background: var(--card-bg);border-radius:8px;font-weight:600;">閉じる</button>
   </div>
 
-  <!-- 設定モーダル -->
+  <!-- 管理者メニュー -->
   <div id="settingsOverlay" class="reset-overlay hidden"></div>
-  <div id="settingsDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101;">
-    <h3>⚙ 設定 — スプレッドシート切替</h3>
-    <p style="font-size:13px;color:var(--muted);margin:0 0 12px;">この端末で使うスプレッドシートを変更します。<br>他の端末や店舗には影響しません。</p>
-    <div style="background:var(--bg);padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px;">
-      <div style="color:var(--muted);font-size:11px;">現在の接続先</div>
-      <div id="settingsCurrentName" style="font-weight:600;margin-top:2px;">読込中…</div>
-      <button type="button" id="settingsCopyUrlBtn" style="margin-top:8px;padding:6px 12px;border:1.5px solid var(--primary);background:var(--card-bg);color:var(--primary);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">📋 スプレッドシートURLをコピー</button>
+  <div id="settingsDialog" class="reset-dialog hidden" style="max-width: 420px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 101; max-height: 90vh; overflow-y: auto;">
+    <h3>⚙ 管理者メニュー</h3>
+    <p style="font-size:12px;color:var(--muted);margin:2px 0 12px;">管理者だけが使うメニューです（誤操作注意）</p>
+
+    <div style="margin-top:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">📚 マスタデータ</div>
+      <button type="button" id="maintImportMasterBtn" class="import-btn">📚 医薬品マスタを更新</button>
+      <div class="hint" style="margin:4px 0 0;">整形済み medicine_master.csv (UTF-8)</div>
     </div>
 
-    <label style="font-size:12px;color:var(--muted);">新しいスプレッドシートURLを貼り付け</label>
-    <input type="text" id="settingsUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;margin-top:4px;margin-bottom:8px;font-size:13px;">
-    <button type="button" id="settingsApplyBtn" class="primary-btn" style="width:100%;">📋 このスプレッドシートに切替</button>
-
-    <div id="settingsRecentSection" style="margin-top:16px;">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">最近使ったスプレッドシート</div>
-      <div id="settingsRecentList"></div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--danger);letter-spacing:0.5px;margin-bottom:6px;">⚠️ サイクル・シート操作</div>
+      <button type="button" id="maintResetBtn" class="reset-btn" style="width:100%;">🔄 新しい棚卸しを始める（進捗リセット）</button>
+      <div class="hint" style="margin:4px 0 12px;">実施中の進捗をクリアして新サイクルへ</div>
+      <button type="button" id="maintClearImpendingBtn" class="import-btn" style="background:#fff;color:#991b1b;border:1.5px solid #fecaca;box-shadow:none;font-size:13px;padding:8px 12px;">切迫品シートをクリア（危険）</button>
+      <div class="hint" style="margin:4px 0 0;color:#991b1b;">⚠️ 過去のリストを完全に消します。誤って押した場合は従業員メニューの「更新」で再生成できます</div>
     </div>
 
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">📊 スプレッドシート切替</div>
+      <div style="background:var(--bg);padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px;">
+        <div style="color:var(--muted);font-size:11px;">現在の接続先</div>
+        <div id="settingsCurrentName" style="font-weight:600;margin-top:2px;">読込中…</div>
+        <button type="button" id="settingsCopyUrlBtn" style="margin-top:8px;padding:6px 12px;border:1.5px solid var(--primary);background:var(--card-bg);color:var(--primary);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">📋 スプレッドシートURLをコピー</button>
+      </div>
 
-    <button type="button" id="settingsCloseBtn" style="margin-top:12px;width:100%;padding:8px;border:1px solid var(--border);background: var(--card-bg);border-radius:4px;">閉じる</button>
+      <label style="font-size:12px;color:var(--muted);">新しいスプレッドシートURLを貼り付け</label>
+      <input type="text" id="settingsUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;margin-top:4px;margin-bottom:8px;font-size:13px;">
+      <button type="button" id="settingsApplyBtn" class="primary-btn" style="width:100%;">📋 このスプレッドシートに切替</button>
+
+      <div id="settingsRecentSection" style="margin-top:12px;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">最近使ったスプレッドシート</div>
+        <div id="settingsRecentList"></div>
+      </div>
+    </div>
+
+    <button type="button" id="settingsCloseBtn" style="margin-top:16px;width:100%;padding:10px;border:1px solid var(--border);background: var(--card-bg);border-radius:8px;font-weight:600;">閉じる</button>
   </div>
 
   <nav class="mode-tabs">
@@ -1265,8 +1278,16 @@
         if (!shelvesLoaded) loadShelves();
       });
       $('maintImportStockBtn').addEventListener('click', startImport);
-      $('maintImportMasterBtn').addEventListener('click', startMasterImport);
-      $('maintResetBtn').addEventListener('click', showResetDialog);
+      // マスタ更新は管理者メニュー内。先に管理者メニューを閉じてから処理を開始する
+      $('maintImportMasterBtn').addEventListener('click', function () {
+        closeSettings();
+        startMasterImport();
+      });
+      // リセット・切迫品クリアも管理者メニュー内。ダイアログが重ならないよう先に閉じる
+      $('maintResetBtn').addEventListener('click', function () {
+        closeSettings();
+        showResetDialog();
+      });
       // モード切替ボタン
       document.querySelectorAll('.stock-mode-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -2322,15 +2343,24 @@
       });
 
       $('maintClearImpendingBtn').addEventListener('click', () => {
-        if (!confirm('切迫品シートを空にします。よろしいですか？\n\n（棚卸し記録は残るので、後から「切迫品シートを更新」で再生成可能です）')) return;
+        // 誤操作防止: 2段階確認（confirm → prompt でタイプ入力）
+        if (!confirm('⚠️ 切迫品シートを完全に空にします。\n\n本当に実行しますか？\n\n（棚卸し記録は残るので、後から「切迫品シートを更新」で再生成できますが、通常は「更新」で十分です）')) return;
+        var answer = prompt('確認のため「クリア」と入力してください：\n\n（キャンセルするなら空欄でOK）');
+        if (answer === null) return; // キャンセル
+        if (String(answer).trim() !== 'クリア') {
+          toast('入力が「クリア」と一致しないため中止しました', 'error');
+          return;
+        }
+        // 実行が確定したら管理者メニューを閉じる
+        closeSettings();
         $('maintClearImpendingBtn').disabled = true;
-        $('maintClearImpendingBtn').textContent = '🗑 クリア中…';
+        $('maintClearImpendingBtn').textContent = 'クリア中…';
         callApi('clearImpendingSheet')
           .then(() => toast('✅ 切迫品シートをクリアしました', 'ok'))
           .catch((err) => toast('エラー: ' + err.message, 'error'))
           .finally(() => {
             $('maintClearImpendingBtn').disabled = false;
-            $('maintClearImpendingBtn').textContent = '🗑 切迫品シートをクリア';
+            $('maintClearImpendingBtn').textContent = '切迫品シートをクリア（危険）';
           });
       });
     }
