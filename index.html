@@ -573,7 +573,7 @@
     <div style="margin-top:12px;">
       <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">📚 マスタデータ</div>
       <button type="button" id="maintImportMasterBtn" class="import-btn">📚 医薬品マスタを更新</button>
-      <div class="hint" style="margin:4px 0 0;">整形済み medicine_master.csv (UTF-8)</div>
+      <div class="hint" style="margin:4px 0 0;">VAN の F メニューCSV or 標準マスタCSV（自動判定）</div>
     </div>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
@@ -2094,6 +2094,8 @@
     }
 
     // ─── 医薬品マスタ更新 ───
+    // 標準マスタCSV（UTF-8）と VAN CSV（Shift_JIS）の両方に対応。
+    // ファイルを ArrayBuffer で読み → base64 化して送る → GAS 側でエンコーディング自動判定。
     function startMasterImport() {
       const input = document.createElement('input');
       input.type = 'file';
@@ -2101,14 +2103,17 @@
       input.addEventListener('change', () => {
         if (!input.files || input.files.length === 0) return;
         const file = input.files[0];
-        if (!confirm('医薬品マスタを丸ごと入れ替えます。よろしいですか？\n\n（既存マスタは上書きされます）')) return;
+        if (!confirm('医薬品マスタを丸ごと入れ替えます。よろしいですか？\n\n（既存マスタは上書きされます）\n\n※ VAN の F メニューCSV も、標準マスタCSV も両方使えます。')) return;
         toast('医薬品マスタを取込中…', 'ok');
         $('maintImportMasterBtn').disabled = true;
-        file.text().then((csvText) => {
-          return callApi('importMasterCsv', { csvText: csvText });
+        file.arrayBuffer().then((buf) => {
+          const base64 = arrayBufferToBase64(buf);
+          return callApi('importMasterCsv', { base64: base64 });
         })
           .then((res) => {
-            toast('✅ 医薬品マスタ更新完了: ' + res.total + '件', 'ok');
+            var fmt = res.format === 'VAN' ? '（VAN形式で認識）' : '（標準形式で認識）';
+            var dup = res.skippedDuplicates > 0 ? ' / 重複除去 ' + res.skippedDuplicates + '件' : '';
+            toast('✅ 医薬品マスタ更新完了: ' + res.total + '件' + fmt + dup, 'ok');
             medicinesLoaded = false;
             // 検索モードで初回アクセス時に再ロード
           })
