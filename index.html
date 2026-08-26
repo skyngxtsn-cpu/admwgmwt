@@ -1704,6 +1704,20 @@
         diffInputWrap.appendChild(vanExpiryContainer);
         expSection.appendChild(diffInputWrap);
 
+        // 「一致」時の追加期限入力エリア（初期は非表示・任意）
+        // VAN期限と一致していても、同じ棚に別の期限（切迫品など）の在庫がある場合に追加できる
+        const matchAdditionalWrap = document.createElement('div');
+        matchAdditionalWrap.className = 'van-expiry-input-wrap hidden';
+        matchAdditionalWrap.id = 'vanMatchAdditionalWrap';
+        const matchAdditionalLabel = document.createElement('div');
+        matchAdditionalLabel.className = 'stock-expiry-sublabel';
+        matchAdditionalLabel.innerHTML = '追加の期限があれば入力（任意・切迫品用）<br><span style="font-size:11px;color:var(--muted);font-weight:normal;">同じ棚に別の期限の在庫がある場合のみ</span>';
+        matchAdditionalWrap.appendChild(matchAdditionalLabel);
+        const matchAdditionalContainer = document.createElement('div');
+        matchAdditionalContainer.id = 'vanMatchAdditionalContainer';
+        matchAdditionalWrap.appendChild(matchAdditionalContainer);
+        expSection.appendChild(matchAdditionalWrap);
+
         // 状態管理
         vanExpiryChoice = null;  // 'match' or 'diff' or null
         vanMatchBtn.addEventListener('click', function () {
@@ -1711,12 +1725,18 @@
           vanMatchBtn.classList.add('checked');
           vanDiffBtn.classList.remove('checked');
           diffInputWrap.classList.add('hidden');
+          matchAdditionalWrap.classList.remove('hidden');
+          // 空欄が1つもなければ初期入力欄を1つだけ用意（任意なので空でOK）
+          if (matchAdditionalContainer.children.length === 0) {
+            addExpiryField(matchAdditionalContainer);
+          }
         });
         vanDiffBtn.addEventListener('click', function () {
           vanExpiryChoice = 'diff';
           vanDiffBtn.classList.add('checked');
           vanMatchBtn.classList.remove('checked');
           diffInputWrap.classList.remove('hidden');
+          matchAdditionalWrap.classList.add('hidden');
           // 空欄が1つもなければ初期入力欄を追加
           if (vanExpiryContainer.children.length === 0) {
             addExpiryField(vanExpiryContainer);
@@ -1878,7 +1898,23 @@
           return;
         }
         if (vanExpiryChoice === 'match') {
-          payloadActualExpiries = [item.vanExpiry];
+          // 「一致」+ 追加期限（任意）
+          var additionalContainer = $('vanMatchAdditionalContainer');
+          var additionalExpiries = [];
+          if (additionalContainer) {
+            var addRes = getExpiries(additionalContainer);
+            if (addRes && addRes.error) {
+              toast(addRes.error, 'error');
+              return;
+            }
+            additionalExpiries = addRes || [];
+          }
+          // 重複除去（VAN期限と同じ期限を追加した場合の対策）
+          var combined = [item.vanExpiry];
+          additionalExpiries.forEach(function (e) {
+            if (combined.indexOf(e) === -1) combined.push(e);
+          });
+          payloadActualExpiries = combined;
           vanExpiryMatchesFlag = true;
         } else {
           // 複数期限入力対応：vanExpiryContainer から拾う
