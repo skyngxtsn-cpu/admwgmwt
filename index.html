@@ -2344,9 +2344,8 @@
           toast('期限または数量を入力してください', 'error');
           return;
         }
-        // 期限なし数量ありは1件、期限ありなら各期限を1件ずつ記録
-        const expiryList = (expiries && expiries.length > 0) ? expiries : [''];
-        const basePayload = {
+        // 【1医薬品=1行】複数期限は1回のAPIコールで送信する（GAS 側で1行にまとめる）
+        const payload = {
           inventoryDate: $('inventoryDate').value,
           yjCode: selected.yj,
           name: selected.name,
@@ -2354,36 +2353,25 @@
           quantity: quantity,
           location: $('locationInput').value,
           memo: $('memoInput').value,
+          expiries: (expiries && expiries.length > 0) ? expiries : [],
         };
         $('submitBtn').disabled = true;
         $('submitBtn').textContent = '記録中…';
-        const promises = expiryList.map(function (exp) {
-          return callApi('addInventoryRecord', Object.assign({}, basePayload, { expiry: exp }));
-        });
-        Promise.all(promises)
-          .then((results) => {
-            // 集計
-            var impending = 0, expired = 0, ok = 0;
-            results.forEach(function (r) {
-              if (r.status === 'impending') impending++;
-              else if (r.status === 'expired') expired++;
-              else if (r.status === 'ok') ok++;
-            });
-            var msg = '✅ ' + results.length + '件記録';
-            if (expired > 0) msg += ' / 🛑 期限切れ ' + expired;
-            if (impending > 0) msg += ' / ⚠️ 切迫 ' + impending;
-            if (ok > 0) msg += ' / 余裕あり ' + ok;
-            // 記録した行番号を集めて、取消アクション付きトーストを表示
-            var rowNumbers = results.map(function (r) { return r.rowNumber; }).filter(Boolean);
-            toast(msg, (expired > 0 || impending > 0) ? 'error' : 'ok', rowNumbers.length > 0 ? {
+        callApi('addInventoryRecord', payload)
+          .then((result) => {
+            var msg = '✅ 記録完了';
+            if (result.status === 'expired') msg += ' / 🛑 期限切れあり';
+            else if (result.status === 'impending') msg += ' / ⚠️ 切迫品あり';
+            else if (result.status === 'ok') msg += ' / 期限余裕あり';
+            var rowNumbers = result.rowNumber ? [result.rowNumber] : [];
+            toast(msg, (result.status === 'expired' || result.status === 'impending') ? 'error' : 'ok', rowNumbers.length > 0 ? {
               label: '取消',
               onClick: function () { undoRecords(rowNumbers); }
             } : null);
             clearSelection();
             loadRecent();
             // 個別記録後は自動で切迫品シートを更新（記録件数が少ないので許容範囲）
-            const hasExpiry = expiryList.some(function (e) { return e; });
-            if (hasExpiry) {
+            if (payload.expiries.length > 0) {
               callApi('rebuildPivot').catch(function () {});
             }
           })
