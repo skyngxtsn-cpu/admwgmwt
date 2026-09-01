@@ -679,12 +679,19 @@
       </div>
     </section>
 
+    <!-- 医薬品検索（棚番一覧より上に配置。ヒットしたら該当棚にジャンプ） -->
+    <section class="card" id="medicineSearchSection">
+      <label for="stockMedicineSearch" class="section-label">医薬品を検索してジャンプ</label>
+      <input type="search" id="stockMedicineSearch" class="shelf-search" placeholder="薬品名・カナ・YJコードで検索…" autocomplete="off" inputmode="search">
+      <ul id="stockMedicineSuggest" class="suggest-list" hidden></ul>
+      <div id="stockMedicineHint" class="hint">2文字以上で検索（マスタから該当薬をタップすると棚にジャンプ）</div>
+    </section>
+
     <section class="card" id="shelfSelectSection">
       <div class="section-head">
         <span class="section-label">棚番を選択</span>
         <button type="button" id="reloadShelvesBtn" class="link-btn">更新</button>
       </div>
-      <input type="search" id="shelfSearch" class="shelf-search" placeholder="棚番を絞り込み…" autocomplete="off">
       <div id="shelfList" class="shelf-list"></div>
     </section>
 
@@ -728,6 +735,7 @@
     let qtyConfirmed = false;
     let vanExpiryChoice = null;  // 'match' / 'diff' / null（VAN期限確認の選択状態）
     let shelfResults = {}; // { idx: { diffStatus, expiryStatus } } 棚内の記録結果
+    let skippedRows = {};  // { idx: true } スキップした品目インデックス集合（記録済みなら削除）
     let completedShelves = {}; // localStorage から復元
     let stockCountMode = 'all'; // 'all' | 'uncounted' | 'diff'
 
@@ -741,6 +749,7 @@
         shelf: currentShelfName,
         index: currentItemIndex,
         results: shelfResults,
+        skipped: skippedRows,
         date: $('inventoryDate').value,
       };
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
@@ -884,7 +893,9 @@
       bindMaint();
       bindCycle();
       loadRecent();
-      // loadAllMedicines は検索モードを開いた時だけ遅延ロード（起動高速化）
+      // 医薬品マスタは棚卸しモード内の検索でも使うので、起動時に先読みする
+      // （ネットが遅い環境でも棚卸し中の検索がすぐ使えるように）
+      loadAllMedicines();
       loadShelves();
       refreshSpreadsheetBadge();
       refreshCycleBadge();
@@ -1231,9 +1242,11 @@
           currentShelfName = saved.shelf;
           currentItemIndex = saved.index;
           shelfResults = saved.results || {};
+          skippedRows = saved.skipped || {};
           $('shelfSelectSection').classList.add('hidden');
           $('stockModeSelect').classList.add('hidden');
           $('totalProgressSection').classList.add('hidden');
+          $('medicineSearchSection').classList.add('hidden');
           $('shelfDetailSection').classList.remove('hidden');
           $('stockProgress').textContent = '読込中…';
           callApi('getStockByShelf', { shelf: saved.shelf })
@@ -1263,16 +1276,20 @@
       if (mode === 'stock' && !shelvesLoaded) loadShelves();
       // 個別記録モードで初めて医薬品マスタを読む
       if (mode === 'search' && !medicinesLoaded) loadAllMedicines();
+      // 棚卸しモードでも医薬品検索を使うため、マスタを先読みする
+      if (mode === 'stock' && !medicinesLoaded) loadAllMedicines();
     }
 
     // ─── 棚卸しモード ───
     function bindStockMode() {
       $('reloadShelvesBtn').addEventListener('click', () => { shelvesLoaded = false; loadShelves(); });
-      $('shelfSearch').addEventListener('input', renderShelfList);
+      // 棚卸しモード内の医薬品検索
+      bindStockMedicineSearch();
       $('backToShelfList').addEventListener('click', () => {
         $('shelfSelectSection').classList.remove('hidden');
         $('stockModeSelect').classList.remove('hidden');
         $('totalProgressSection').classList.remove('hidden');
+        $('medicineSearchSection').classList.remove('hidden');
         $('shelfDetailSection').classList.add('hidden');
         $('stockItemSearch').value = '';
         $('stockSearchResults').classList.add('hidden');
@@ -1303,6 +1320,7 @@
           } else {
             $('shelfSelectSection').classList.remove('hidden');
             $('totalProgressSection').classList.remove('hidden');
+            $('medicineSearchSection').classList.remove('hidden');
             $('shelfDetailSection').classList.add('hidden');
             renderShelfList();
           }
@@ -1355,6 +1373,129 @@
       });
     }
 
+    // ─── 棚卸しモード内の医薬品検索（棚選択画面から直接ジャンプ） ───
+    function bindStockMedicineSearch() {
+      const input = $('stockMedicineSearch');
+      const suggest = $('stockMedicineSuggest');
+      const hint = $('stockMedicineHint');
+      var timer = null;
+      input.addEventListener('input', function () {
+        const q = input.value.trim();
+        if (timer) clearTimeout(timer);
+        if (q.length < 2) {
+          suggest.hidden = true;
+          hint.textContent = medicinesLoaded
+            ? '2文字以上で検索（マスタから該当薬をタップすると棚にジャンプ）'
+            : '医薬品マスタ読み込み中…';
+          return;
+        }
+        if (!medicinesLoaded) {
+          hint.textContent = '医薬品マスタ読み込み中…';
+          return;
+        }
+        timer = setTimeout(function () {
+          const hits = searchClientSide(q);
+          renderStockMedicineSuggest(hits, q);
+        }, 100);
+      });
+      // blur で候補を隠す（少し遅延 = tap を拾えるように）
+      input.addEventListener('blur', function () {
+        setTimeout(function () { suggest.hidden = true; }, 250);
+      });
+    }
+
+    function renderStockMedicineSuggest(rows, query) {
+      const suggest = $('stockMedicineSuggest');
+      const hint = $('stockMedicineHint');
+      suggest.innerHTML = '';
+      if (rows.length === 0) {
+        suggest.hidden = true;
+        hint.textContent = '該当なし（マスタに登録がありません）';
+        return;
+      }
+      hint.textContent = rows.length + '件ヒット — タップして該当棚にジャンプ';
+      rows.forEach(function (r) {
+        const li = document.createElement('li');
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = r.name;
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = [r.spec, r.unit, r.maker].filter(Boolean).join(' / ') + (r.yj ? '  [' + r.yj + ']' : '');
+        li.appendChild(name);
+        li.appendChild(meta);
+        li.addEventListener('click', function () { jumpToStockItem(r); });
+        suggest.appendChild(li);
+      });
+      suggest.hidden = false;
+    }
+
+    function jumpToStockItem(medicine) {
+      const yj = medicine && medicine.yj ? String(medicine.yj).trim() : '';
+      if (!yj) {
+        toast('YJコードが空です。棚卸しモードでは検索できません。', 'error');
+        return;
+      }
+      const hint = $('stockMedicineHint');
+      hint.textContent = '該当棚を検索中…';
+      callApi('findStockItemByYj', { yjCode: yj })
+        .then(function (item) {
+          if (!item) {
+            toast('この医薬品は自店在庫に登録されていません（VAN未取込・在庫0・棚番未設定のいずれか）', 'error');
+            hint.textContent = '見つかりませんでした';
+            return;
+          }
+          const shelfName = String(item.shelf || '').trim() || '（棚番なし）';
+          // 棚を開いて、該当rowNumber の位置へジャンプ
+          openShelfAndJumpToItem(shelfName, item.rowNumber, item);
+          // 検索欄をクリア
+          $('stockMedicineSearch').value = '';
+          $('stockMedicineSuggest').hidden = true;
+          hint.textContent = '2文字以上で検索（マスタから該当薬をタップすると棚にジャンプ）';
+        })
+        .catch(function (err) {
+          toast('検索エラー: ' + err.message, 'error');
+          hint.textContent = 'エラーが発生しました';
+        });
+    }
+
+    function openShelfAndJumpToItem(shelfName, targetRowNumber, item) {
+      // 棚卸しモードの通常フローに従って、該当棚を開いて対象品目までジャンプする
+      currentShelfName = shelfName;
+      currentItemIndex = 0;
+      shelfResults = {};
+      skippedRows = {};
+      $('shelfSelectSection').classList.add('hidden');
+      $('stockModeSelect').classList.add('hidden');
+      $('totalProgressSection').classList.add('hidden');
+      $('medicineSearchSection').classList.add('hidden');
+      $('shelfDetailSection').classList.remove('hidden');
+      $('stockProgress').textContent = '読込中…';
+      $('stockCardContainer').innerHTML = '';
+      callApi('getStockByShelf', { shelf: shelfName })
+        .then(function (rows) {
+          var items = rows || [];
+          if (stockCountMode === 'uncounted') {
+            items = items.filter(function (it) { return !it.lastInventoryDate; });
+          }
+          currentShelfItems = items;
+          // 対象品目のインデックスを探す
+          var targetIdx = -1;
+          for (var i = 0; i < items.length; i++) {
+            if (Number(items[i].rowNumber) === Number(targetRowNumber)) { targetIdx = i; break; }
+          }
+          if (targetIdx >= 0) {
+            currentItemIndex = targetIdx;
+          } else {
+            toast('該当品目はこの棚のフィルタで表示できません（未実施モード等）。全品目モードに切り替えて再試行してください。', 'error');
+          }
+          renderCurrentItem();
+        })
+        .catch(function (err) {
+          $('stockCardContainer').innerHTML = '<div class="hint">エラー: ' + err.message + '</div>';
+        });
+    }
+
     function loadShelves() {
       $('shelfList').innerHTML = '<div class="hint">読み込み中…</div>';
       callApi('getShelfList')
@@ -1386,14 +1527,9 @@
 
     function renderShelfList() {
       renderTotalProgress();
-      const filter = $('shelfSearch').value.trim().toLowerCase();
-      const filterKey = normalizeShelfKey(filter);
       const list = $('shelfList');
       list.innerHTML = '';
-      const filtered = shelves.filter(function (s) {
-        if (!filter) return true;
-        return s.shelf.toLowerCase().includes(filter) || normalizeShelfKey(s.shelf).includes(filterKey);
-      });
+      const filtered = shelves.slice();
       // 未実施モードでは未完了棚のみ表示
       const display = stockCountMode === 'uncounted'
         ? filtered.filter(function (s) { return (s.done || 0) < s.count; })
@@ -1445,9 +1581,11 @@
       currentShelfName = shelf;
       currentItemIndex = 0;
       shelfResults = {};
+      skippedRows = {};
       $('shelfSelectSection').classList.add('hidden');
       $('stockModeSelect').classList.add('hidden');
       $('totalProgressSection').classList.add('hidden');
+      $('medicineSearchSection').classList.add('hidden');
       $('shelfDetailSection').classList.remove('hidden');
       $('stockProgress').textContent = '読込中…';
       $('stockCardContainer').innerHTML = '';
@@ -1469,6 +1607,7 @@
     function loadDiffItems() {
       $('shelfSelectSection').classList.add('hidden');
       $('totalProgressSection').classList.add('hidden');
+      $('medicineSearchSection').classList.add('hidden');
       $('shelfDetailSection').classList.remove('hidden');
       $('stockModeSelect').classList.remove('hidden');
       $('stockProgress').textContent = '読込中…';
@@ -1476,6 +1615,7 @@
       currentShelfName = '差異品再カウント';
       currentItemIndex = 0;
       shelfResults = {};
+      skippedRows = {};
       callApi('getDiffItems')
         .then(function (items) {
           if (!items || items.length === 0) {
@@ -1498,10 +1638,14 @@
       qtyConfirmed = false;
       vanExpiryChoice = null;
 
-      // 全品目完了 → サマリー表示のみ（切迫品シート更新は手動ボタン）
+      // 全品目ループ完了 → サマリー表示。ただし棚完了マークはスキップが無い時だけ。
       if (currentItemIndex >= currentShelfItems.length) {
         clearProgress();
-        if (stockCountMode === 'all') markShelfDone(currentShelfName);
+        // スキップした品目が1件でも残っていれば「未完了扱い」で棚完了マークを付けない
+        var hasSkipped = Object.keys(skippedRows).some(function (k) { return skippedRows[k]; });
+        if (stockCountMode === 'all' && !hasSkipped) {
+          markShelfDone(currentShelfName);
+        }
         showCompleteSummary(container);
         return;
       }
@@ -1565,11 +1709,12 @@
         const shelfBtn = document.createElement('button');
         shelfBtn.type = 'button';
         shelfBtn.className = 'shelf-change-btn';
-        shelfBtn.textContent = '変更';
+        shelfBtn.textContent = '変更提案';
+        shelfBtn.title = '棚番変更は履歴として記録され、管理者が VAN 側で反映します';
         const shelfOkBtn = document.createElement('button');
         shelfOkBtn.type = 'button';
         shelfOkBtn.className = 'shelf-change-btn hidden';
-        shelfOkBtn.textContent = '決定';
+        shelfOkBtn.textContent = '記録';
         const shelfCancelBtn = document.createElement('button');
         shelfCancelBtn.type = 'button';
         shelfCancelBtn.className = 'shelf-change-btn hidden';
@@ -1591,21 +1736,26 @@
           shelfOkBtn.classList.add('hidden');
           shelfCancelBtn.classList.add('hidden');
         });
-        // 決定
+        // 記録（自店在庫の棚番は書き換えず、棚番変更履歴シートにだけ記録する）
         shelfOkBtn.addEventListener('click', function () {
           var newShelf = shelfSelect.value;
           if (newShelf === item.shelf) { shelfCancelBtn.click(); return; }
           shelfOkBtn.disabled = true;
-          shelfOkBtn.textContent = '変更中…';
+          shelfOkBtn.textContent = '記録中…';
           callApi('updateShelf', { rowNumber: item.rowNumber, newShelf: newShelf })
             .then(function (res) {
-              item.shelf = newShelf;
-              shelfLabel.textContent = '棚番: ' + (newShelf || 'なし');
-              toast('棚番を変更: ' + (res.oldShelf || 'なし') + ' → ' + (newShelf || 'なし'), 'ok');
+              // 【重要】自店在庫の棚番は変更されない（GAS 側で書き換え停止済み）
+              // 表示ラベルも変更しない（次回開いた時も元の棚に表示される）
+              toast(
+                '棚番変更を記録しました: ' + (res.oldShelf || 'なし') + ' → ' + (newShelf || 'なし') + '\n' +
+                '※ 実際の棚番は変わりません。管理者が VAN 側で対応します。',
+                'ok',
+                { duration: 5000 }
+              );
               shelfCancelBtn.click();
             })
             .catch(function (err) { toast('エラー: ' + err.message, 'error'); })
-            .finally(function () { shelfOkBtn.disabled = false; shelfOkBtn.textContent = '決定'; });
+            .finally(function () { shelfOkBtn.disabled = false; shelfOkBtn.textContent = '記録'; });
         });
         shelfRow.appendChild(shelfLabel);
         shelfRow.appendChild(shelfSelect);
@@ -1790,6 +1940,8 @@
       skipBtn.className = 'stock-skip-btn';
       skipBtn.textContent = 'スキップ →';
       skipBtn.addEventListener('click', function () {
+        // スキップ品目を追跡（後で「棚未完了」の判定に使う）
+        skippedRows[currentItemIndex] = true;
         currentItemIndex++;
         renderCurrentItem();
       });
@@ -1802,7 +1954,6 @@
     }
 
     function showCompleteSummary(container) {
-      $('stockProgress').textContent = '完了';
       const total = currentShelfItems.length;
       let recorded = 0, diffs = 0, impending = 0;
       Object.values(shelfResults).forEach(function (r) {
@@ -1810,19 +1961,56 @@
         if (r.diffStatus === 'diff') diffs++;
         if (r.expiryStatus === 'impending' || r.expiryStatus === 'expired') impending++;
       });
-      const skipped = total - recorded;
+      // スキップ数は skippedRows（実際にスキップされたインデックス）から数える
+      var skippedCount = 0;
+      Object.keys(skippedRows).forEach(function (k) {
+        if (skippedRows[k]) skippedCount++;
+      });
+      var isIncomplete = skippedCount > 0;
 
-      container.innerHTML =
+      // 進捗表示: スキップがあれば「未完了」、なければ「完了」
+      $('stockProgress').textContent = isIncomplete ? '未完了（スキップあり）' : '完了';
+
+      // スキップ品目に戻るボタンを付与するため、最初のスキップindexを取得
+      var firstSkippedIdx = -1;
+      Object.keys(skippedRows).forEach(function (k) {
+        if (!skippedRows[k]) return;
+        var n = parseInt(k, 10);
+        if (firstSkippedIdx === -1 || n < firstSkippedIdx) firstSkippedIdx = n;
+      });
+
+      var summaryHtml =
         '<div class="stock-complete">' +
-        '<div class="stock-complete-icon">✅</div>' +
-        '<div class="stock-complete-msg">' + currentShelfName + ' 完了</div>' +
+        '<div class="stock-complete-icon">' + (isIncomplete ? '⚠️' : '✅') + '</div>' +
+        '<div class="stock-complete-msg">' + currentShelfName +
+          (isIncomplete ? '（未完了扱い）' : ' 完了') + '</div>' +
         '<div class="stock-complete-summary">' +
-        '記録: ' + recorded + '件' + (skipped > 0 ? ' / スキップ: ' + skipped + '件' : '') + '<br>' +
+        '記録: ' + recorded + '件' +
+        (skippedCount > 0 ? ' / スキップ: ' + skippedCount + '件' : '') + '<br>' +
         (diffs > 0 ? '<span class="diff">差異: ' + diffs + '件</span><br>' : '') +
         (impending > 0 ? '<span class="imp">切迫・期限切: ' + impending + '件</span>' : '') +
-        '</div>' +
-        '<button type="button" class="primary-btn" onclick="document.getElementById(\'backToShelfList\').click()">棚番一覧に戻る</button>' +
         '</div>';
+      if (isIncomplete) {
+        summaryHtml +=
+          '<div style="background:#fef3c7;color:#78350f;padding:10px;border-radius:8px;margin:8px 0;font-size:13px;line-height:1.5;">' +
+          '⚠️ この棚は<strong>未完了扱い</strong>です。<br>' +
+          'スキップ品目を全て記録するまで棚一覧の「完了」マークは付きません。' +
+          '</div>' +
+          '<button type="button" class="primary-btn" id="jumpToSkippedBtn" style="margin-bottom:8px;">↩ スキップ品目に戻る</button>';
+      }
+      summaryHtml += '<button type="button" class="primary-btn" onclick="document.getElementById(\'backToShelfList\').click()">棚番一覧に戻る</button>' +
+        '</div>';
+      container.innerHTML = summaryHtml;
+
+      if (isIncomplete && firstSkippedIdx >= 0) {
+        var btn = document.getElementById('jumpToSkippedBtn');
+        if (btn) {
+          btn.addEventListener('click', function () {
+            currentItemIndex = firstSkippedIdx;
+            renderCurrentItem();
+          });
+        }
+      }
     }
 
     // ─── 期限入力 ───
@@ -1972,6 +2160,8 @@
       }
       // 楽観的に「一致」を仮記録（後で API 結果で上書き）
       shelfResults[savedItemIndex] = { diffStatus: 'pending', expiryStatus: 'pending' };
+      // スキップ扱いだった品目を記録した場合は skippedRows から削除
+      if (skippedRows[savedItemIndex]) delete skippedRows[savedItemIndex];
       currentItemIndex++;
       renderCurrentItem();
 
@@ -1983,8 +2173,10 @@
             expiryStatus: res.expiryStatus,
             vanExpiryStatus: res.vanExpiryStatus,
           };
-          if (res.shelfChanged && payload.newShelf !== undefined) {
-            savedItem.shelf = payload.newShelf;
+          // 【重要】棚番変更を提案した場合、自店在庫は変更されないので savedItem.shelf は上書きしない。
+          //  次回開いた時も元の棚に品目が表示される（管理者が VAN 側で反映するまで）。
+          if (payload.newShelf !== undefined) {
+            toast('📝 棚番変更を記録しました（管理者が VAN 側で反映）', 'ok');
           }
           // 差異あり or 期限相違ありの場合だけトースト（成功時は無音でサクサク進める）
           if (res.diffStatus === 'diff' || res.vanExpiryStatus === 'diff') {
