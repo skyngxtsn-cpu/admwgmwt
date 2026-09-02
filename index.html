@@ -699,6 +699,7 @@
       <div class="stock-header">
         <button type="button" id="backToShelfList" class="stock-back-btn">← 棚番一覧</button>
         <span id="stockProgress" class="stock-progress"></span>
+        <button type="button" id="stockShelfItemListBtn" class="stock-back-btn" style="background:#eef7ff;color:var(--primary);border:1.5px solid #bfdbfe;">📋 一覧</button>
       </div>
       <div class="stock-search-row">
         <input type="search" id="stockItemSearch" class="stock-search-input" placeholder="品目を検索してジャンプ…" autocomplete="off">
@@ -707,6 +708,17 @@
       <div id="stockCardContainer"></div>
     </section>
   </main>
+
+  <!-- 棚内品目一覧モーダル -->
+  <div id="stockItemListOverlay" class="reset-overlay hidden"></div>
+  <div id="stockItemListDialog" class="reset-dialog hidden" style="max-width:480px;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:101;max-height:80vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <h3 id="stockItemListTitle" style="margin:0;">棚内品目一覧</h3>
+      <button type="button" id="stockItemListCloseBtn" style="padding:6px 10px;background:var(--card-bg);border:1px solid var(--border);border-radius:6px;font-weight:600;cursor:pointer;">閉じる</button>
+    </div>
+    <div class="hint" style="margin-bottom:8px;">タップで該当品目のカードにジャンプします</div>
+    <div id="stockItemListContent"></div>
+  </div>
 
   <div id="toast" class="toast" hidden></div>
 
@@ -1371,6 +1383,73 @@
       $('stockItemSearch').addEventListener('blur', function () {
         setTimeout(function () { $('stockSearchResults').classList.add('hidden'); }, 200);
       });
+      // 棚内品目一覧ボタン
+      $('stockShelfItemListBtn').addEventListener('click', openShelfItemList);
+      $('stockItemListCloseBtn').addEventListener('click', closeShelfItemList);
+      $('stockItemListOverlay').addEventListener('click', closeShelfItemList);
+    }
+
+    // ─── 棚内品目一覧モーダル ───
+    function openShelfItemList() {
+      if (!currentShelfItems || currentShelfItems.length === 0) {
+        toast('品目がありません', 'error');
+        return;
+      }
+      var title = $('stockItemListTitle');
+      title.textContent = currentShelfName + '（' + currentShelfItems.length + '品目）';
+      var content = $('stockItemListContent');
+      content.innerHTML = '';
+      currentShelfItems.forEach(function (item, idx) {
+        var row = document.createElement('div');
+        row.style.cssText = 'padding:10px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+        if (idx === currentItemIndex) {
+          row.style.background = '#eef7ff';
+        }
+        // 状態バッジ判定
+        var badge = '';
+        var badgeStyle = '';
+        var result = shelfResults[idx];
+        var isSkipped = !!skippedRows[idx];
+        var isDone = !!item.lastInventoryDate;
+        if (result && result.diffStatus === 'diff') {
+          badge = '差異'; badgeStyle = 'background:#fee2e2;color:#991b1b;';
+        } else if (isSkipped) {
+          badge = 'スキップ'; badgeStyle = 'background:#fef3c7;color:#78350f;';
+        } else if (result) {
+          badge = '✅ 記録'; badgeStyle = 'background:#d1fae5;color:#065f46;';
+        } else if (isDone) {
+          badge = '実施済'; badgeStyle = 'background:#e5e7eb;color:#374151;';
+        } else {
+          badge = '未実施'; badgeStyle = 'background:#dbeafe;color:#1e40af;';
+        }
+        var left = document.createElement('div');
+        left.style.cssText = 'flex:1;min-width:0;';
+        var name = document.createElement('div');
+        name.style.cssText = 'font-weight:600;font-size:14px;line-height:1.4;';
+        name.textContent = (idx + 1) + '. ' + item.name;
+        var meta = document.createElement('div');
+        meta.style.cssText = 'font-size:11px;color:var(--muted);margin-top:2px;';
+        meta.textContent = '理論在庫: ' + item.theoreticalStock + ' ' + (item.unit || '');
+        left.appendChild(name);
+        left.appendChild(meta);
+        var right = document.createElement('span');
+        right.style.cssText = 'padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0;' + badgeStyle;
+        right.textContent = badge;
+        row.appendChild(left);
+        row.appendChild(right);
+        row.addEventListener('click', function () {
+          currentItemIndex = idx;
+          closeShelfItemList();
+          renderCurrentItem();
+        });
+        content.appendChild(row);
+      });
+      $('stockItemListOverlay').classList.remove('hidden');
+      $('stockItemListDialog').classList.remove('hidden');
+    }
+    function closeShelfItemList() {
+      $('stockItemListOverlay').classList.add('hidden');
+      $('stockItemListDialog').classList.add('hidden');
     }
 
     // ─── 棚卸しモード内の医薬品検索（棚選択画面から直接ジャンプ） ───
@@ -1643,10 +1722,13 @@
         clearProgress();
         // スキップした品目が1件でも残っていれば「未完了扱い」で棚完了マークを付けない
         var hasSkipped = Object.keys(skippedRows).some(function (k) { return skippedRows[k]; });
+        // ※ 既に完了済みの棚を再訪してスキップした場合は、完了扱いを維持する
+        //   （一度完了した棚を後から見直す時、全部再カウントしなくても未完了に戻さない）
+        var wasAlreadyCompleted = !!completedShelves[currentShelfName];
         if (stockCountMode === 'all' && !hasSkipped) {
           markShelfDone(currentShelfName);
         }
-        showCompleteSummary(container);
+        showCompleteSummary(container, wasAlreadyCompleted);
         return;
       }
 
@@ -1949,11 +2031,59 @@
       navRow.appendChild(skipBtn);
       actions.appendChild(navRow);
 
+      // 未実施に戻すボタン（既に記録済みの品目にだけ表示）
+      if (item.lastInventoryDate) {
+        const undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.textContent = '↩ この品目を未実施に戻す';
+        undoBtn.style.cssText = 'margin-top:10px;width:100%;padding:8px 12px;background:#fff;color:#991b1b;border:1.5px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;';
+        undoBtn.addEventListener('click', function () {
+          if (!confirm('この品目の棚卸し情報を消して、未実施の状態に戻します。\n\n（棚卸し記録・最終棚卸日・差異品・期限相違、すべてクリアされます）\n\nよろしいですか？')) return;
+          undoBtn.disabled = true;
+          undoBtn.textContent = '戻し中…';
+          const cycleName = getCycle() || '';
+          callApi('undoItemRecord', {
+            yjCode: item.yjCode,
+            cycle: cycleName,
+            rowNumber: item.rowNumber,
+          })
+            .then(function (res) {
+              // UI 状態を更新
+              item.lastInventoryDate = '';
+              delete shelfResults[currentItemIndex];
+              delete skippedRows[currentItemIndex];
+              // 棚の完了マークを外す（この品目が未実施になったので、棚全体も未完了）
+              if (completedShelves[currentShelfName]) {
+                delete completedShelves[currentShelfName];
+                try { localStorage.setItem(STORAGE_KEY + '_done', JSON.stringify(completedShelves)); } catch (e) {}
+              }
+              // 棚一覧の done カウントも減らす（表示用）
+              shelves.forEach(function (s) {
+                if (s.shelf === currentShelfName && s.done > 0) s.done--;
+              });
+              var msg = '↩ 未実施に戻しました';
+              var details = [];
+              if (res.deletedRecords) details.push('記録' + res.deletedRecords + '件');
+              if (res.deletedDiff) details.push('差異' + res.deletedDiff + '件');
+              if (res.deletedExpiryDiff) details.push('期限相違' + res.deletedExpiryDiff + '件');
+              if (details.length) msg += '（' + details.join(' / ') + ' 削除）';
+              toast(msg, 'ok');
+              renderCurrentItem();
+            })
+            .catch(function (err) {
+              toast('エラー: ' + err.message, 'error');
+              undoBtn.disabled = false;
+              undoBtn.textContent = '↩ この品目を未実施に戻す';
+            });
+        });
+        actions.appendChild(undoBtn);
+      }
+
       card.appendChild(actions);
       container.appendChild(card);
     }
 
-    function showCompleteSummary(container) {
+    function showCompleteSummary(container, wasAlreadyCompleted) {
       const total = currentShelfItems.length;
       let recorded = 0, diffs = 0, impending = 0;
       Object.values(shelfResults).forEach(function (r) {
@@ -1966,7 +2096,10 @@
       Object.keys(skippedRows).forEach(function (k) {
         if (skippedRows[k]) skippedCount++;
       });
-      var isIncomplete = skippedCount > 0;
+      // 「未完了扱い」の判定：
+      //   スキップがある AND 既に完了済みでない（＝初回訪問でスキップした場合のみ）。
+      //   一度完了済みの棚を再訪してスキップした場合は、完了扱いを維持する。
+      var isIncomplete = skippedCount > 0 && !wasAlreadyCompleted;
 
       // 進捗表示: スキップがあれば「未完了」、なければ「完了」
       $('stockProgress').textContent = isIncomplete ? '未完了（スキップあり）' : '完了';
@@ -1997,6 +2130,13 @@
           'スキップ品目を全て記録するまで棚一覧の「完了」マークは付きません。' +
           '</div>' +
           '<button type="button" class="primary-btn" id="jumpToSkippedBtn" style="margin-bottom:8px;">↩ スキップ品目に戻る</button>';
+      } else if (skippedCount > 0 && wasAlreadyCompleted) {
+        // 完了済みの棚を再訪してスキップした場合の説明
+        summaryHtml +=
+          '<div style="background:#eefbf1;color:#065f46;padding:10px;border-radius:8px;margin:8px 0;font-size:13px;line-height:1.5;">' +
+          '✅ この棚は既に完了済みです。<br>' +
+          'スキップ ' + skippedCount + '件がありましたが、完了扱いを維持します。' +
+          '</div>';
       }
       summaryHtml += '<button type="button" class="primary-btn" onclick="document.getElementById(\'backToShelfList\').click()">棚番一覧に戻る</button>' +
         '</div>';
